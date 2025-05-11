@@ -1,14 +1,10 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:productivity_suite_flutter/notes/data/note.dart';
 
-
+part of 'note.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
-
-
 
 class NoteAdapter extends TypeAdapter<Note> {
   @override
@@ -27,13 +23,16 @@ class NoteAdapter extends TypeAdapter<Note> {
       date: fields[3] as DateTime,
       type: fields[4] as NoteType,
       attachmentPath: fields[5] as String?,
+      colorValue: fields[6] as int?,
+      isPinned: fields[7] as bool?,
+      updatedAt: fields[8] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Note obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -45,7 +44,13 @@ class NoteAdapter extends TypeAdapter<Note> {
       ..writeByte(4)
       ..write(obj.type)
       ..writeByte(5)
-      ..write(obj.attachmentPath);
+      ..write(obj.attachmentPath)
+      ..writeByte(6)
+      ..write(obj.colorValue)
+      ..writeByte(7)
+      ..write(obj.isPinned)
+      ..writeByte(8)
+      ..write(obj.updatedAt);
   }
 
   @override
