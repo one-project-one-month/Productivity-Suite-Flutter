@@ -2,7 +2,7 @@ import 'package:go_router/go_router.dart';
 import '../main_screen.dart';
 import '../screens/views/budget_tracker_screen.dart';
 import '../screens/views/notes_screen.dart';
-import '../screens/views/pomodoro_screen.dart';
+import '../screens/views/main_pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
 final GoRouter routes = GoRouter(
