@@ -1,7 +1,12 @@
 import 'package:go_router/go_router.dart';
+import 'package:productivity_suite_flutter/notes/notes_screen.dart';
+// import 'package:productivity_suite_flutter/notes/notes.dart';
+// // import 'package:note_taking/main.dart' as note;
+
 import '../main_screen.dart';
 import '../screens/views/budget_tracker_screen.dart';
-import '../screens/views/notes_screen.dart';
+// import 'package:note_taking/pages/ home/home_screen.dart' as note;
+// import 'package:note_taking/bindings/app_binding.dart' as notebind;
 import '../screens/views/pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
@@ -30,7 +35,7 @@ final GoRouter routes = GoRouter(
               path: '/to_do',
               builder: (context, state) {
                 String? name = state.uri.queryParameters['name'];
-                return ToDoScreen(name: name!);
+                return ToDoScreen(name: name ?? '');
               },
             ),
           ],
@@ -41,6 +46,7 @@ final GoRouter routes = GoRouter(
               name: 'notes',
               path: '/notes',
               builder: (context, state) {
+               
                 return NotesScreen();
               },
             ),
