@@ -5,9 +5,8 @@ import 'package:productivity_suite_flutter/notes/notes_screen.dart';
 
 import '../main_screen.dart';
 import '../screens/views/budget_tracker_screen.dart';
-// import 'package:note_taking/pages/ home/home_screen.dart' as note;
-// import 'package:note_taking/bindings/app_binding.dart' as notebind;
-import '../screens/views/pomodoro_screen.dart';
+
+import '../screens/views/main_pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
 final GoRouter routes = GoRouter(
