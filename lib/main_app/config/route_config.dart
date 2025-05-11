@@ -1,11 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:productivity_suite_flutter/notes/notes_screen.dart';
-// import 'package:productivity_suite_flutter/notes/notes.dart';
-// // import 'package:note_taking/main.dart' as note;
-
 import '../main_screen.dart';
 import '../screens/views/budget_tracker_screen.dart';
-
 import '../screens/views/main_pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
