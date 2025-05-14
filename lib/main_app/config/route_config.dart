@@ -1,12 +1,22 @@
 import 'package:go_router/go_router.dart';
 import 'package:productivity_suite_flutter/notes/notes_screen.dart';
+import '../../auth/auth_screen.dart';
+import '../../auth/register_screen.dart';
 import '../main_screen.dart';
 import '../screens/views/budget_tracker_screen.dart';
 import '../screens/views/main_pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
-
 final GoRouter routes = GoRouter(
+  initialLocation: '/login',
   routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => AuthScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => RegisterScreen(),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return MainScreen(shell: shell);
@@ -41,7 +51,6 @@ final GoRouter routes = GoRouter(
               name: 'notes',
               path: '/notes',
               builder: (context, state) {
-               
                 return NotesScreen();
               },
             ),
