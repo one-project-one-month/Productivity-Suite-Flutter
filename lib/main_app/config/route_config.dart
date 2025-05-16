@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:productivity_suite_flutter/budgets/budgets.dart';
 import '../main_screen.dart';
 import '../screens/views/budget_tracker_screen.dart';
 import '../screens/views/notes_screen.dart';
@@ -52,7 +53,7 @@ final GoRouter routes = GoRouter(
               name: 'budget_tracker',
               path: '/budget_tracker',
               builder: (context, state) {
-                return BudgetTrackerScreen();
+                return BudgetPage();
               },
             ),
           ],
