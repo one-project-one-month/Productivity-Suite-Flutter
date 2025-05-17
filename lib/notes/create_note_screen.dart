@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:productivity_suite_flutter/notes/data/compress_data.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
 
 class CreateNoteScreen extends StatefulWidget {
@@ -169,20 +170,19 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children:
-          colors.map((color) {
+          colors.map((c) {
+            final isSelected = c == selectedColor;
             return GestureDetector(
               onTap: () {
-                if (color != selectedColor) {
-                  _trackChange('color', selectedColor, color);
-                  setState(() => selectedColor = color);
-                }
+                _trackChange('color', selectedColor, c);
+                setState(() => selectedColor = c);
               },
               child: CircleAvatar(
-                radius: 14,
-                backgroundColor: color,
+                radius: isSelected ? 14 : 12,
+                backgroundColor: c,
                 child:
-                    selectedColor == color
-                        ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 18)
                         : null,
               ),
             );
@@ -191,18 +191,27 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
   }
 
   void _saveNote() {
-    if (titleController.text.trim().isEmpty ||
-        descriptionController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Title and description can't be empty")),
-      );
+    final titleText = titleController.text.trim();
+    final descriptionText = descriptionController.text.trim();
+
+    if (titleText.isEmpty && descriptionText.isEmpty) {
       return;
     }
 
+    final compressedTitle =
+        titleText.isEmpty
+            ? titleText
+            : 'CMP:${CompressString.compressString(titleText)}';
+
+    final compressedDescription =
+        descriptionText.isEmpty
+            ? descriptionText
+            : 'CMP:${CompressString.compressString(descriptionText)}';
+
     final note = Note(
       id: DateTime.now().toIso8601String(),
-      title: titleController.text.trim(),
-      description: descriptionController.text.trim(),
+      title: compressedTitle,
+      description: compressedDescription,
       date: DateTime.now(),
       updatedAt: DateTime.now(),
       type: NoteType.text,
@@ -219,82 +228,96 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
     var formatDate = DateFormat('MMMM d, h:mm a').format(createDate);
     final totalLength =
         titleController.text.length + descriptionController.text.length;
-    return Scaffold(
-      appBar: AppBar(
-        //title: const Text('Create Note'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(_isEditing ? Icons.check : Icons.arrow_back),
-          onPressed: _isEditing ? _saveNote : () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.undo),
-            tooltip: 'Undo',
-            onPressed: undoStack.isNotEmpty ? _undo : null,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: selectedColor.withOpacity(0.25),
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(_isEditing ? Icons.check : Icons.arrow_back),
+            onPressed:
+                _isEditing ? _saveNote : () => Navigator.of(context).pop(),
           ),
-          IconButton(
-            icon: const Icon(Icons.redo),
-            tooltip: 'Redo',
-            onPressed: redoStack.isNotEmpty ? _redo : null,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: titleController,
-              focusNode: titleFocusNode,
-              maxLines: 1,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-
-                hintText: 'Title...',
-                hintStyle: TextStyle(color: Colors.grey),
-              ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.undo),
+              tooltip: 'Undo',
+              onPressed: undoStack.isNotEmpty ? _undo : null,
             ),
-            Row(
+            IconButton(
+              icon: const Icon(Icons.redo),
+              tooltip: 'Redo',
+              onPressed: redoStack.isNotEmpty ? _redo : null,
+            ),
+          ],
+        ),
+        body: Container(
+          color: selectedColor.withOpacity(0.25),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "$formatDate | $totalLength characters",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                TextField(
+                  controller: titleController,
+                  focusNode: titleFocusNode,
+                  maxLines: 1,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+
+                    hintText: 'Title...',
+                    hintStyle: TextStyle(
+                      color: const Color.fromARGB(255, 107, 107, 107),
+                    ),
+                  ),
                 ),
+                Row(
+                  children: [
+                    Text(
+                      "$formatDate | $totalLength characters",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color.fromARGB(255, 72, 72, 72),
+                      ),
+                    ),
+                  ],
+                ),
+                Divider(color: Color.fromARGB(255, 72, 72, 72)),
+
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: descriptionController,
+                    focusNode: descriptionFocusNode,
+                    maxLines: 500,
+                    decoration: InputDecoration(
+                      hintText: 'Start typing...',
+                      hintStyle: TextStyle(
+                        color: const Color.fromARGB(255, 107, 107, 107),
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Color Tag:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      _buildColorPicker(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
               ],
             ),
-            Divider(),
-
-            Expanded(
-              flex: 2,
-              child: TextField(
-                controller: descriptionController,
-                focusNode: descriptionFocusNode,
-                maxLines: 500,
-                decoration: InputDecoration(
-                  hintText: 'Start typing...',
-                  hintStyle: TextStyle(color: Colors.grey),
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Color Tag:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  _buildColorPicker(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
+          ),
         ),
       ),
     );
