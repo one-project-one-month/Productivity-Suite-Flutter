@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'auth_provider.dart';
 
 class AuthScreen extends ConsumerWidget {
+  AuthScreen({super.key});
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
@@ -17,17 +18,25 @@ class AuthScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(controller: emailController, decoration: InputDecoration(labelText: 'Email')),
-            TextField(controller: passwordController, decoration: InputDecoration(labelText: 'Password'), obscureText: true),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: passwordController,
+              decoration: InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () async {
-                bool success = await ref.read(authProvider.notifier).login(
-                  emailController.text,
-                  passwordController.text,
-                );
+                bool success = await ref
+                    .read(authProvider.notifier)
+                    .login(emailController.text, passwordController.text);
                 if (success) {
-                  context.go('/');
+                  if (context.mounted) {
+                    context.go('/');
+                  }
                 }
               },
               child: Text('Login'),
@@ -42,7 +51,10 @@ class AuthScreen extends ConsumerWidget {
             if (authState.error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
-                child: Text(authState.error!, style: TextStyle(color: Colors.red)),
+                child: Text(
+                  authState.error!,
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
           ],
         ),

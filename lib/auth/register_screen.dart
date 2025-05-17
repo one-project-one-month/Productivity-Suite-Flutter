@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -73,15 +75,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     );
                     return;
                   }
-                  bool success = await ref.read(authProvider.notifier).register(
-                    nameController.text,
-                    usernameController.text,
-                    emailController.text,
-                    passwordController.text,
-                    selectedGender!,
-                  );
+                  bool success = await ref
+                      .read(authProvider.notifier)
+                      .register(
+                        nameController.text,
+                        usernameController.text,
+                        emailController.text,
+                        passwordController.text,
+                        selectedGender!,
+                      );
                   if (success) {
-                    context.go('/login');
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
                   }
                 },
                 child: Text('Register'),
@@ -89,7 +95,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               if (authState.error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
-                  child: Text(authState.error!, style: TextStyle(color: Colors.red)),
+                  child: Text(
+                    authState.error!,
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
             ],
           ),

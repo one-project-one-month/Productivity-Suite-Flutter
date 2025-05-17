@@ -7,7 +7,7 @@ import 'package:productivity_suite_flutter/notes/create_note_screen.dart';
 import 'package:intl/intl.dart';
 
 class NotesScreen extends StatefulWidget {
-  const NotesScreen({Key? key}) : super(key: key);
+  const NotesScreen({super.key});
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
