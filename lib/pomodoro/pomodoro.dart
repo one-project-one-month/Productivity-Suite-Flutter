@@ -65,9 +65,11 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
           child: Consumer(
             builder: (context, ref, _) {
               return TabBar(
+                indicatorColor: const Color(0xff0045f3),
+                labelColor: const Color(0xff0045f3),
                 controller: _tabController,
                 tabs: const [
-                  Tab(text: 'Work'),
+                  Tab(text: 'Focus'),
                   Tab(text: 'Short Break'),
                   Tab(text: 'Long Break'),
                 ],
