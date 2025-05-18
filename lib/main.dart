@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:productivity_suite_flutter/pomodoro/shared_prefs_provider.dart';
+import 'package:productivity_suite_flutter/pomodoro/utils/shared_prefs_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main_app/config/route_config.dart';
 import 'notes/data/note.dart';

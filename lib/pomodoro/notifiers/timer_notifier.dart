@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'pomodoro_state_model.dart';
-import 'shared_prefs_provider.dart';
+import '../models/pomodoro_state_model.dart';
+import '../utils/shared_prefs_provider.dart';
 
 class PomodoroNotifier extends Notifier<PomodoroState> {
   Timer? _timer;
@@ -16,6 +16,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     final savedLongBreak = prefs.getInt('longBreakDuration') ?? 1500;
     final completedSessions = prefs.getInt('completedSessions') ?? 0;
     final savedModeIndex = prefs.getInt('lastSelectedMode') ?? 0;
+    final completedWorkSessions = prefs.getInt('completedWorkSessions') ?? 0;
     final savedMode = PomodoroMode.values[savedModeIndex];
 
     return PomodoroState(
@@ -27,6 +28,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       isRunning: false,
       longBreakDuration: savedLongBreak,
       completedSessions: completedSessions,
+      completedWorkSessions: completedWorkSessions,
     );
   }
 
@@ -39,10 +41,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       } else {
         _timer?.cancel();
         state = state.copyWith(isRunning: false);
-        if (state.mode == PomodoroMode.work) {
-          _incrementSession();
-        }
-        _switchMode();
+        _handleTimerComplete();
       }
     });
   }
@@ -58,8 +57,54 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     state = state.copyWith(remainingSeconds: defaultDuration, isRunning: false);
   }
 
-  void _incrementSession() {
-    final newCount = state.completedSessions + 1;
+  void _handleTimerComplete() {
+    const maxWorkSessions = 4;
+
+    if (state.mode == PomodoroMode.work) {
+      final newWorkCount = state.completedWorkSessions + 1;
+
+      if (newWorkCount < maxWorkSessions) {
+        // Short break
+        prefs.setInt('completedWorkSessions', newWorkCount);
+        state = state.copyWith(
+          mode: PomodoroMode.shortBreak,
+          remainingSeconds: 5,
+          completedWorkSessions: newWorkCount,
+          isRunning: false,
+        );
+      } else {
+        // Completed 4 work sessions → now long break
+        //final newCompletedSessions = state.completedSessions + 1;
+        final newCompletedSessions = (state.completedSessions + 1) % 5;
+
+        prefs.setInt('completedWorkSessions', 0);
+        prefs.setInt('completedSessions', newCompletedSessions);
+        state = state.copyWith(
+          mode: PomodoroMode.longBreak,
+          remainingSeconds: state.longBreakDuration,
+          completedWorkSessions: 0,
+          completedSessions: newCompletedSessions,
+          isRunning: false,
+        );
+      }
+    } else {
+      // After any break → go to work
+      state = state.copyWith(
+        mode: PomodoroMode.work,
+        remainingSeconds: 10,
+        isRunning: false,
+      );
+    }
+  }
+
+  /*void _incrementSession() {
+    const int maxSessions = 4;
+    int newCount;
+    if (state.completedSessions >= maxSessions) {
+      newCount = 0;
+    } else {
+      newCount = state.completedSessions + 1;
+    }
     prefs.setInt('completedSessions', newCount);
     state = state.copyWith(completedSessions: newCount);
   }
@@ -72,7 +117,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     } else {
       changeMode(PomodoroMode.work);
     }
-  }
+  }*/
 
   void changeMode(PomodoroMode mode) {
     final seconds = _getDurationForMode(mode);
@@ -94,9 +139,9 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   int _getDurationForMode(PomodoroMode mode, {int? longBreak}) {
     switch (mode) {
       case PomodoroMode.work:
-        return 1500;
+        return 10; // 25 minutes(1500)
       case PomodoroMode.shortBreak:
-        return 900;
+        return 5; // 5 minutes(300)
       case PomodoroMode.longBreak:
         return longBreak ?? state.longBreakDuration;
     }

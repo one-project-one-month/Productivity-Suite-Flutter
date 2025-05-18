@@ -5,7 +5,8 @@ class PomodoroState {
   final PomodoroMode mode;
   final bool isRunning;
   final int longBreakDuration;
-  final int completedSessions;
+  final int completedSessions; // Total long Pomodoro sessions
+  final int completedWorkSessions; // Tracks 1 to 4 before long break
 
   PomodoroState({
     required this.remainingSeconds,
@@ -13,6 +14,7 @@ class PomodoroState {
     required this.isRunning,
     required this.longBreakDuration,
     required this.completedSessions,
+    required this.completedWorkSessions,
   });
 
   PomodoroState copyWith({
@@ -21,6 +23,7 @@ class PomodoroState {
     bool? isRunning,
     int? longBreakDuration,
     int? completedSessions,
+    int? completedWorkSessions,
   }) {
     return PomodoroState(
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
@@ -28,6 +31,8 @@ class PomodoroState {
       isRunning: isRunning ?? this.isRunning,
       longBreakDuration: longBreakDuration ?? this.longBreakDuration,
       completedSessions: completedSessions ?? this.completedSessions,
+      completedWorkSessions:
+          completedWorkSessions ?? this.completedWorkSessions,
     );
   }
 }
