@@ -18,6 +18,8 @@ Future<void> noteTakingSetup() async {
   await Hive.initFlutter(dir.path);
   Hive.registerAdapter(NoteTypeAdapter());
   Hive.registerAdapter(NoteAdapter());
+  Hive.registerAdapter(CategoryAdapter());
+  await Hive.openBox<Category>('categoriesBox');
   await Hive.openBox<Note>('notesBox');
 }
 

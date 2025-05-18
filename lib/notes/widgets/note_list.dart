@@ -25,9 +25,7 @@ class NoteListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat(
-      'MMMM d, h:mm a',
-    ).format(note.updatedAt ?? note.date);
+    final formattedDate = DateFormat('MMMM d, h:mm a').format(note.updatedAt);
 
     return GestureDetector(
       onTap: onTap,
@@ -103,9 +101,9 @@ class NoteListItem extends StatelessWidget {
                   ),
                   IconButton(
                     icon: Icon(
-                      note.isPinned! ? Icons.push_pin : Icons.push_pin_outlined,
+                      note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                       color:
-                          note.isPinned!
+                          note.isPinned
                               ? const Color.fromARGB(255, 8, 0, 248)
                               : const Color.fromARGB(255, 83, 81, 81),
                     ),

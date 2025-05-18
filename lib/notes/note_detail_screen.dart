@@ -1,295 +1,8 @@
-// import 'package:flutter/material.dart';
-// import 'package:hive_flutter/hive_flutter.dart';
-// import 'package:intl/intl.dart';
-// import 'package:productivity_suite_flutter/notes/data/note.dart';
-
-// class NoteDetailScreen extends StatefulWidget {
-//   final int noteIndex;
-//   final Note note;
-//   const NoteDetailScreen({
-//     super.key,
-//     required this.noteIndex,
-//     required this.note,
-//   });
-
-//   @override
-//   State<NoteDetailScreen> createState() => _NoteDetailScreenState();
-// }
-
-// class _NoteDetailScreenState extends State<NoteDetailScreen> {
-//   late TextEditingController titleController;
-//   late TextEditingController descriptionController;
-//   final Box<Note> notesBox = Hive.box<Note>('notesBox');
-
-//   Color selectedColor = Colors.blue;
-//   String lastUpdated = '';
-
-//   final List<Map<String, dynamic>> undoStack = [];
-//   final List<Map<String, dynamic>> redoStack = [];
-//   bool _isPerformingUndoRedo = false;
-
-//   String _lastTitle = '';
-//   String _lastDescription = '';
-
-//   void _updateButtonStates() {
-//     setState(() {});
-//   }
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     titleController = TextEditingController(text: widget.note.title);
-//     descriptionController = TextEditingController(
-//       text: widget.note.description,
-//     );
-//     selectedColor = widget.note.color ?? Colors.blue;
-//     lastUpdated = DateFormat.yMMMd().add_jm().format(
-//       widget.note.updatedAt ?? DateTime.now(),
-//     );
-
-//     _lastTitle = widget.note.title;
-//     _lastDescription = widget.note.description;
-
-//     titleController.addListener(() {
-//       if (!_isPerformingUndoRedo) {
-//         final current = titleController.text;
-//         _trackChange('title', _lastTitle, current);
-//         _lastTitle = current;
-//         _updateButtonStates();
-//       }
-//     });
-
-//     descriptionController.addListener(() {
-//       if (!_isPerformingUndoRedo) {
-//         final current = descriptionController.text;
-//         _trackChange('description', _lastDescription, current);
-//         _lastDescription = current;
-//         _updateButtonStates();
-//       }
-//     });
-//   }
-
-//   @override
-//   void dispose() {
-//     titleController.dispose();
-//     descriptionController.dispose();
-//     super.dispose();
-//   }
-
-//   void _trackChange(String field, dynamic oldValue, dynamic newValue) {
-//     if (_isPerformingUndoRedo || oldValue == newValue) return;
-//     undoStack.add({'field': field, 'old': oldValue, 'new': newValue});
-//     redoStack.clear();
-//   }
-
-//   void _undo() {
-//     if (undoStack.isEmpty) return;
-
-//     final lastAction = undoStack.removeLast();
-//     redoStack.add(lastAction);
-
-//     _isPerformingUndoRedo = true;
-
-//     setState(() {
-//       switch (lastAction['field']) {
-//         case 'title':
-//           titleController.text = lastAction['old'];
-//           titleController.selection = TextSelection.fromPosition(
-//             TextPosition(offset: titleController.text.length),
-//           );
-//           _lastTitle = lastAction['old'];
-//           break;
-//         case 'description':
-//           descriptionController.text = lastAction['old'];
-//           descriptionController.selection = TextSelection.fromPosition(
-//             TextPosition(offset: descriptionController.text.length),
-//           );
-//           _lastDescription = lastAction['old'];
-//           break;
-//         case 'color':
-//           selectedColor = lastAction['old'];
-//           break;
-//       }
-//     });
-
-//     _isPerformingUndoRedo = false;
-//     _updateButtonStates();
-//   }
-
-//   void _redo() {
-//     if (redoStack.isEmpty) return;
-
-//     final nextAction = redoStack.removeLast();
-//     undoStack.add(nextAction);
-
-//     _isPerformingUndoRedo = true;
-
-//     setState(() {
-//       switch (nextAction['field']) {
-//         case 'title':
-//           titleController.text = nextAction['new'];
-//           titleController.selection = TextSelection.fromPosition(
-//             TextPosition(offset: titleController.text.length),
-//           );
-//           _lastTitle = nextAction['new'];
-//           break;
-//         case 'description':
-//           descriptionController.text = nextAction['new'];
-//           descriptionController.selection = TextSelection.fromPosition(
-//             TextPosition(offset: descriptionController.text.length),
-//           );
-//           _lastDescription = nextAction['new'];
-//           break;
-//         case 'color':
-//           selectedColor = nextAction['new'];
-//           break;
-//       }
-//     });
-
-//     _isPerformingUndoRedo = false;
-//     _updateButtonStates();
-//   }
-
-//   void _updateNote() {
-//     final hasChanges =
-//         titleController.text.trim() != widget.note.title.trim() ||
-//         descriptionController.text.trim() != widget.note.description.trim() ||
-//         selectedColor != (widget.note.color ?? Colors.blue);
-
-//     if (!hasChanges) {
-//       Navigator.of(context).pop();
-//       return;
-//     }
-
-//     final updatedNote = widget.note.copyWith(
-//       title: titleController.text.trim(),
-//       description: descriptionController.text.trim(),
-//       colorValue: selectedColor.value,
-//       updatedAt: DateTime.now(),
-//     );
-
-//     notesBox.putAt(widget.noteIndex, updatedNote);
-//     Navigator.of(context).pop();
-//   }
-
-//   Widget _buildColorPicker() {
-//     final colors = [
-//       Colors.blue,
-//       Colors.green,
-//       Colors.orange,
-//       Colors.purple,
-//       Colors.red,
-//     ];
-//     return Row(
-//       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//       children:
-//           colors
-//               .map(
-//                 (color) => GestureDetector(
-//                   onTap: () {
-//                     _trackChange('color', selectedColor, color);
-//                     setState(() => selectedColor = color);
-//                   },
-//                   child: CircleAvatar(
-//                     radius: 14,
-//                     backgroundColor: color,
-//                     child:
-//                         selectedColor == color
-//                             ? const Icon(
-//                               Icons.check,
-//                               color: Colors.white,
-//                               size: 16,
-//                             )
-//                             : null,
-//                   ),
-//                 ),
-//               )
-//               .toList(),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//title: const Text('Edit Note'),
-//         centerTitle: true,
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.undo),
-//             tooltip: 'Undo',
-//             onPressed: undoStack.isNotEmpty ? _undo : null,
-//           ),
-//           IconButton(
-//             icon: const Icon(Icons.redo),
-//             tooltip: 'Redo',
-//             onPressed: redoStack.isNotEmpty ? _redo : null,
-//           ),
-//           IconButton(
-//             icon: const Icon(Icons.check),
-//             tooltip: 'Upgrade Note',
-//             onPressed: _updateNote,
-//           ),
-//         ],
-//       ),
-//       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(20),
-//         child: Card(
-//           elevation: 0,
-//           color: selectedColor.withOpacity(0.1),
-//           shape: RoundedRectangleBorder(
-//             borderRadius: BorderRadius.circular(16),
-//           ),
-//           child: Padding(
-//             padding: const EdgeInsets.all(20),
-//             child: Column(
-//               children: [
-//                 TextField(
-//                   controller: titleController,
-//                   decoration: const InputDecoration(
-//                     labelText: 'Title',
-//                     border: OutlineInputBorder(),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 16),
-//                 TextField(
-//                   controller: descriptionController,
-//                   maxLines: 8,
-//                   decoration: const InputDecoration(
-//                     labelText: 'Description',
-//                     border: OutlineInputBorder(),
-//                   ),
-//                 ),
-//                 const SizedBox(height: 20),
-//                 Row(
-//                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                   children: [
-//                     const Text(
-//                       'Color Tag:',
-//                       style: TextStyle(fontWeight: FontWeight.bold),
-//                     ),
-//                     _buildColorPicker(),
-//                   ],
-//                 ),
-//                 const SizedBox(height: 20),
-//                 Text(
-//                   "Last updated: $lastUpdated",
-//                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-//                 ),
-//                 const SizedBox(height: 20),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:productivity_suite_flutter/notes/data/compress_data.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
+import 'package:productivity_suite_flutter/notes/widgets/color_picker.dart';
 
 class NoteDetailScreen extends StatefulWidget {
   final Note note;
@@ -359,6 +72,20 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     if (oldValue == newValue) return;
     undoStack.add({'field': field, 'old': oldValue, 'new': newValue});
     redoStack.clear();
+  }
+
+  Widget _buildColorPicker() {
+    return ColorPicker(
+      initialColor: selectedColor,
+      onColorChanged: (color) {
+        _trackChange('color', selectedColor, color);
+        setState(() => selectedColor = color);
+      },
+
+      circleRadius: 14,
+      selectedCircleRadius: 16,
+      iconSize: 18,
+    );
   }
 
   void _undo() {
@@ -447,38 +174,6 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     Navigator.of(context).pop();
   }
 
-  Widget _buildColorPicker() {
-    const colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-      Colors.brown,
-    ];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children:
-          colors.map((c) {
-            final isSelected = c == selectedColor;
-            return GestureDetector(
-              onTap: () {
-                _trackChange('color', selectedColor, c);
-                setState(() => selectedColor = c);
-              },
-              child: CircleAvatar(
-                radius: isSelected ? 14 : 12,
-                backgroundColor: c,
-                child:
-                    isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 18)
-                        : null,
-              ),
-            );
-          }).toList(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isSaveEnabled =
@@ -562,16 +257,9 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   alignment: Alignment.bottomCenter,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Color Tag:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      _buildColorPicker(),
-                    ],
+                    children: [Expanded(child: _buildColorPicker())],
                   ),
                 ),
-                const SizedBox(height: 10),
               ],
             ),
           ),

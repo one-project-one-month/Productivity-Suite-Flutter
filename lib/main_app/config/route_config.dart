@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:productivity_suite_flutter/notes/category.dart';
 import 'package:productivity_suite_flutter/notes/notes_screen.dart';
 import '../../auth/auth_screen.dart';
 import '../../auth/register_screen.dart';
@@ -51,7 +52,7 @@ final GoRouter routes = GoRouter(
               name: 'notes',
               path: '/notes',
               builder: (context, state) {
-                return NotesScreen();
+                return CategoryScreen();
               },
             ),
           ],
