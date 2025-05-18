@@ -55,7 +55,9 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
     });
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         centerTitle: true,
         title: const Text('Pomodoro Timer'),
         bottom: PreferredSize(
@@ -137,7 +139,7 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
 }
 
 class _ModeWidgets extends ConsumerWidget {
-  const _ModeWidgets({super.key});
+  const _ModeWidgets();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

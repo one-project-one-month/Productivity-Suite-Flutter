@@ -29,6 +29,17 @@ final GoRouter routes = GoRouter(
             ),
           ],
         ),
+        /*StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: 'pomodoro',
+              path: '/pomodoro',
+              builder: (context, state) {
+                return Pomodoro();
+              },
+            ),
+          ],
+        ),*/
         StatefulShellBranch(
           routes: [
             GoRoute(

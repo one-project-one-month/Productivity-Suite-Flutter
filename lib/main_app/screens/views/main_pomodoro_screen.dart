@@ -23,83 +23,84 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
               Container(
                 decoration: const BoxDecoration(
                   borderRadius: BorderRadius.all(Radius.circular(16.0)),
-                  gradient: LinearGradient(
+                  /*gradient: LinearGradient(
                     begin: Alignment.bottomLeft,
                     end: Alignment(1, 0.9),
                     colors: [Color(0xff6C63FF), Color(0xff63B3ED)],
-                  ),
+                  ),*/
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Focus Better \nAchieve More',
-                        style: textTheme.headlineMedium!.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Focus Better \nAchieve More',
+                          style: textTheme.headlineMedium!.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xff0045f3),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 20.0),
-                      Text(
-                        'Your all-in-one productivity suite that helps you manage time, tasks, notes, and finances effectively',
-                        style: textTheme.titleMedium!.copyWith(
-                          color: Colors.white,
+                        SizedBox(height: 20.0),
+                        Text(
+                          'Your all-in-one productivity suite that helps you manage time, tasks, notes, and finances effectively',
+                          style: textTheme.titleMedium!.copyWith(
+                            color: const Color(0xff0045f3),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 24.0),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52.0,
-                        child: FilledButton.tonal(
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(12.0),
+                        SizedBox(height: 24.0),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52.0,
+                          child: FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xff0045f3),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(12.0),
+                                ),
+                              ),
+                            ),
+                            onPressed: () {
+                              context.goNamed('to_do');
+                            },
+                            child: Text(
+                              'Get Started Free',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          onPressed: () {
-                            String name = 'name';
-                            context.goNamed(
-                              'to_do',
-                              queryParameters: {'name': name},
-                            );
-                          },
-                          child: Text(
-                            'Get Started Free',
-                            style: TextStyle(
-                              color: Colors.indigoAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ),
-                      ),
-                      SizedBox(height: 12.0),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52.0,
-                        child: TextButton(
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              side: BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(12.0),
+                        SizedBox(height: 12.0),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52.0,
+                          child: TextButton(
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                side: BorderSide(
+                                  color: const Color(0xff0045f3),
+                                ),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(12.0),
+                                ),
+                              ),
+                            ),
+                            onPressed: () {},
+                            child: Text(
+                              'Login Here',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xff0045f3),
                               ),
                             ),
                           ),
-                          onPressed: () {},
-                          child: Text(
-                            'Login Here',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -114,25 +115,30 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
               Row(
                 children: [
                   Flexible(
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              color: Colors.blueAccent,
-                              size: 35.0,
-                            ),
-                            SizedBox(height: 12.0),
-                            Text(
-                              'Pomodoro Timer',
-                              style: textTheme.titleMedium,
-                            ),
-                            SizedBox(height: 8.0),
-                            Text('Focus better with time blocks'),
-                          ],
+                    child: InkWell(
+                      onTap: () {
+                        context.go('/pomodoro');
+                      },
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                color: const Color(0xff0045f3),
+                                size: 35.0,
+                              ),
+                              SizedBox(height: 12.0),
+                              Text(
+                                'Pomodoro Timer',
+                                style: textTheme.titleMedium,
+                              ),
+                              SizedBox(height: 8.0),
+                              Text('Focus better with time blocks'),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -146,7 +152,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                           children: [
                             Icon(
                               Icons.checklist,
-                              color: Colors.blueAccent,
+                              color: const Color(0xff0045f3),
                               size: 35.0,
                             ),
                             SizedBox(height: 12.0),
@@ -171,7 +177,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                           children: [
                             Icon(
                               Icons.note_add,
-                              color: Colors.blueAccent,
+                              color: const Color(0xff0045f3),
                               size: 35.0,
                             ),
                             SizedBox(height: 12.0),
@@ -192,7 +198,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
                           children: [
                             Icon(
                               Icons.attach_money,
-                              color: Colors.blueAccent,
+                              color: const Color(0xff0045f3),
                               size: 35.0,
                             ),
                             SizedBox(height: 12.0),
