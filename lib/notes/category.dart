@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
 import 'package:productivity_suite_flutter/notes/notes_screen.dart';
 import 'package:productivity_suite_flutter/notes/widgets/color_picker.dart';
+import 'package:productivity_suite_flutter/notes/widgets/folder_shape.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
@@ -19,24 +20,50 @@ class _CategoryScreenState extends State<CategoryScreen> {
     super.initState();
   }
 
-  int _countNotesInCategory(String categoryId) {
-    return Hive.box<Note>(
-      'notesBox',
-    ).values.where((note) => note.categoryId == categoryId).length;
-  }
-
-  Widget _buildColorPicker() {
-    Color selectedColor = Color(_categoriesBox.values.first.colorValue);
-    return ColorPicker(
-      initialColor: selectedColor,
-      onColorChanged: (color) {
-        setState(() => selectedColor = color);
-      },
-      // Optional customizations:
-      circleRadius: 14,
-      selectedCircleRadius: 16,
-      iconSize: 18,
+  void _deleteCategory(Category category) async {
+    final confirm = await showDialog<bool>(
+      context: context, // outer screen context, for `showDialog`
+      builder:
+          (dialogContext) => // dialog’s own context
+              AlertDialog(
+            title: Text('Delete "${category.name}"?'),
+            content: Text('This action cannot be undone.'),
+            actions: [
+              TextButton(
+                child: Text('Cancel'),
+                onPressed:
+                    () =>
+                    // THIS pops _only_ the dialog
+                    Navigator.of(dialogContext).pop(false),
+              ),
+              TextButton(
+                child: Text('Delete', style: TextStyle(color: Colors.red)),
+                onPressed:
+                    () =>
+                    // THIS pops _only_ the dialog
+                    Navigator.of(dialogContext).pop(true),
+              ),
+            ],
+          ),
     );
+    if (confirm == true) {
+      // Delete all notes in this category first
+      final notesBox = Hive.box<Note>('notesBox');
+      final notesToDelete =
+          notesBox.values.where((n) => n.categoryId == category.id).toList();
+      for (final note in notesToDelete) {
+        await note.delete();
+      }
+      // Now delete the category
+      await category.delete();
+      if (mounted) {
+        if (Navigator.canPop(context)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Category "${category.name}" deleted')),
+          );
+        }
+      }
+    }
   }
 
   void _showEditCategoryDialog(Category category) {
@@ -76,9 +103,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Color(0xff0045F3)),
+                ),
               ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
                 onPressed: () {
                   if (categoryName.isNotEmpty) {
                     category.name = categoryName;
@@ -87,7 +122,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text('Save'),
+                child: Text('Save', style: TextStyle(color: Color(0xff0045F3))),
               ),
             ],
           ),
@@ -96,7 +131,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   void _showCreateCategoryDialog() {
     String categoryName = '';
-    Color selectedColor = Color(0xFF2196F3);
+    Color selectedColor = Color(0xff0045F3);
 
     showDialog(
       context: context,
@@ -125,9 +160,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Color(0xff0045F3)),
+                ),
               ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
                 onPressed: () {
                   if (categoryName.isNotEmpty) {
                     final newCategory = Category(
@@ -139,7 +182,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text('Create'),
+                child: Text(
+                  'Create',
+                  style: TextStyle(color: Color(0xff0045F3)),
+                ),
               ),
             ],
           ),
@@ -149,7 +195,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Notes')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Notes'),
+        backgroundColor: Colors.white,
+        centerTitle: true,
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -191,46 +242,65 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: GestureDetector(
-                        onLongPress: () => _showEditCategoryDialog(cat),
-                        onTap:
-                            () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (_) => CategoryNotesScreen(category: cat),
+                      child: Stack(
+                        children: [
+                          // Tapping the folder navigates into it:
+                          Positioned.fill(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap:
+                                  () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => CategoryNotesScreen(
+                                            category: cat,
+                                          ),
+                                    ),
+                                  ),
+                              child: FolderShapeWithBorder(
+                                label: cat.name,
+                                catID: cat.id,
+                                iconData: cat.name,
+                                color: Color(cat.colorValue),
+                                borderColor: Color(cat.colorValue),
                               ),
                             ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Color(cat.colorValue),
-                            borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(Icons.folder_open, color: Colors.white70),
-                              SizedBox(height: 8),
-                              Text(
-                                cat.name,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Notes: ${_countNotesInCategory(cat.id)}',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+
+                          Positioned(
+                            top: 8,
+                            bottom: 1,
+                            right: 0,
+                            child: PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert, color: Colors.white),
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'edit':
+                                    _showEditCategoryDialog(cat);
+                                    break;
+                                  case 'delete':
+                                    _deleteCategory(cat);
+                                    break;
+                                }
+                              },
+                              itemBuilder:
+                                  (_) => [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text('Edit'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     );
                   },
@@ -241,9 +311,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateCategoryDialog,
-        child: Icon(Icons.add),
         tooltip: 'Create New Category',
+        onPressed: _showCreateCategoryDialog,
+
+        backgroundColor: Color(0xff0045F3),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }
@@ -251,7 +323,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
 class CategoryNotesScreen extends StatelessWidget {
   final Category category;
-  CategoryNotesScreen({required this.category});
+  const CategoryNotesScreen({super.key, required this.category});
 
   @override
   Widget build(BuildContext context) {

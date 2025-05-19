@@ -34,8 +34,8 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     descriptionController = TextEditingController(
       text: CompressString.decompressString(widget.note.description),
     );
-    selectedColor = widget.note.color ?? Colors.white;
-    lastUpdate = widget.note.updatedAt ?? DateTime.now();
+    selectedColor = widget.note.color;
+    lastUpdate = widget.note.updatedAt;
     _lastTitle = widget.note.title;
     _lastDescription = widget.note.description;
 

@@ -76,6 +76,7 @@ class _ColorPickerState extends State<ColorPicker> {
     Colors.purple,
     Colors.deepPurple,
     Colors.indigo,
+    Color(0xff0045F3),
     Colors.blue,
     Colors.lightBlue,
     Colors.cyan,

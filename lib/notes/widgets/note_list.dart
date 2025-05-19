@@ -36,7 +36,7 @@ class NoteListItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           side:
               selectionMode && selected
-                  ? BorderSide(color: Colors.blueAccent, width: 1.5)
+                  ? BorderSide(color: Color(0xff0045F3), width: 1.5)
                   : BorderSide(
                     color: Color(note.colorValue!).withOpacity(0.2),
                     width: 1.5,
@@ -85,7 +85,7 @@ class NoteListItem extends StatelessWidget {
                             : Icons.radio_button_unchecked,
                         color:
                             selected
-                                ? const Color.fromARGB(255, 3, 106, 252)
+                                ? const Color(0xff0045F3)
                                 : const Color.fromARGB(255, 51, 50, 50),
                       ),
                     ),
@@ -104,7 +104,7 @@ class NoteListItem extends StatelessWidget {
                       note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                       color:
                           note.isPinned
-                              ? const Color.fromARGB(255, 8, 0, 248)
+                              ? Color(0xff0045F3)
                               : const Color.fromARGB(255, 83, 81, 81),
                     ),
                     onPressed: onPin,
