@@ -137,7 +137,7 @@ class RecentTranscationWidget extends StatelessWidget {
       usage: "Healthcare",
       description: "Medicine",
       createDate: DateTime.now(),
-      amount: 20000,
+      amount: 200000000,
     ),
     TranscationModel(
       id: "424",
@@ -179,23 +179,63 @@ class RecentTranscationWidget extends StatelessWidget {
                   ),
                 ),
                 child: Row(
-                  spacing: 10,
+                  spacing: 8,
+                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    obj.type == "Income"
-                        ? Icon(Icons.arrow_downward)
-                        : Icon(Icons.arrow_upward),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(obj.description),
-                        Text(
-                          "${obj.usage} . ${DateFormat('MMMM d, y').format(obj.createDate)}",
-                        ),
-                      ],
+                    Flexible(
+                      flex: 2,
+                      child:
+                          obj.type == "Income"
+                              ? Icon(Icons.arrow_downward)
+                              : Icon(Icons.arrow_upward),
                     ),
-                    Spacer(),
-                    FittedBox(child: Text("\$ ${obj.amount}")),
-                    IconButton(onPressed: () {}, icon: Icon(Icons.delete)),
+                    Expanded(
+                      flex: 12,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            obj.description,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                          Text(
+                            "${obj.usage} . ${DateFormat('MMMM d, y').format(obj.createDate)}",
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 131, 131, 131),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Expanded(
+                      flex: 4,
+                      child: FittedBox(
+                        child: Text(
+                          obj.type == "Income"
+                              ? "+ \$${obj.amount}"
+                              : "- \$${obj.amount}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color:
+                                obj.type == "Income"
+                                    ? Colors.green
+                                    : Colors.red,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: IconButton(
+                        onPressed: () {},
+                        icon: Icon(Icons.delete),
+                      ),
+                    ),
                   ],
                 ),
               );
