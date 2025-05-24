@@ -3,11 +3,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:productivity_suite_flutter/notes/data/compress_data.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
+import 'package:productivity_suite_flutter/notes/widgets/color_picker.dart';
 
 class CreateNoteScreen extends StatefulWidget {
   final Box<Note> notesBox;
+  final String? categoryId;
 
-  const CreateNoteScreen({super.key, required this.notesBox});
+  const CreateNoteScreen({super.key, required this.notesBox, this.categoryId});
 
   @override
   State<CreateNoteScreen> createState() => _CreateNoteScreenState();
@@ -125,6 +127,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
   @override
   void initState() {
     super.initState();
+
     _lastTitle = titleController.text;
     _lastDescription = descriptionController.text;
 
@@ -159,34 +162,16 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
   }
 
   Widget _buildColorPicker() {
-    final colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-      Colors.brown,
-    ];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children:
-          colors.map((c) {
-            final isSelected = c == selectedColor;
-            return GestureDetector(
-              onTap: () {
-                _trackChange('color', selectedColor, c);
-                setState(() => selectedColor = c);
-              },
-              child: CircleAvatar(
-                radius: isSelected ? 14 : 12,
-                backgroundColor: c,
-                child:
-                    isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 18)
-                        : null,
-              ),
-            );
-          }).toList(),
+    return ColorPicker(
+      initialColor: selectedColor,
+      onColorChanged: (color) {
+        _trackChange('color', selectedColor, color);
+        setState(() => selectedColor = color);
+      },
+      // Optional customizations:
+      circleRadius: 14,
+      selectedCircleRadius: 16,
+      iconSize: 18,
     );
   }
 
@@ -211,8 +196,9 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
     final note = Note(
       id: DateTime.now().toIso8601String(),
       title: compressedTitle,
+      categoryId: widget.categoryId,
       description: compressedDescription,
-      date: DateTime.now(),
+      createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       type: NoteType.text,
       isPinned: false,
@@ -305,16 +291,9 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
                   alignment: Alignment.bottomCenter,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Color Tag:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      _buildColorPicker(),
-                    ],
+                    children: [Expanded(child: _buildColorPicker())],
                   ),
                 ),
-                const SizedBox(height: 10),
               ],
             ),
           ),
