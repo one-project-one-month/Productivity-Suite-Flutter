@@ -207,7 +207,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14.0),
             child: Text(
-              "Category",
+              "Note Categories",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
             ),
           ),
@@ -244,20 +244,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       ),
                       child: Stack(
                         children: [
-                          // Tapping the folder navigates into it:
                           Positioned.fill(
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap:
-                                  () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => CategoryNotesScreen(
-                                            category: cat,
-                                          ),
-                                    ),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CategoryNotesScreen(category: cat),
                                   ),
+                                );
+                                
+                                if (mounted) {
+                                  setState(() {});
+                                }
+                              },
                               child: FolderShapeWithBorder(
                                 label: cat.name,
                                 catID: cat.id,

@@ -9,13 +9,15 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 class AuthState {
   final bool isAuthenticated;
   final String? error;
+  final String? token;
 
-  AuthState({this.isAuthenticated = false, this.error});
+  AuthState({this.isAuthenticated = false, this.error, this.token});
 
-  AuthState copyWith({bool? isAuthenticated, String? error}) {
+  AuthState copyWith({bool? isAuthenticated, String? error, String? token}) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       error: error ?? this.error,
+      token: token ?? this.token,
     );
   }
 }
@@ -23,8 +25,16 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(AuthState());
 
-  Future<bool> register(String name, String username, String email, String password, int gender) async {
-    final url = Uri.parse('https://productivity-suite-java.onrender.com/productivity-suite/api/v1/auth/register');
+  Future<bool> register(
+    String name,
+    String username,
+    String email,
+    String password,
+    int gender,
+  ) async {
+    final url = Uri.parse(
+      'https://productivity-suite-java.onrender.com/productivity-suite/api/v1/auth/register',
+    );
     try {
       final response = await http.post(
         url,
@@ -51,19 +61,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> login(String email, String password) async {
-    final url = Uri.parse('https://productivity-suite-java.onrender.com/productivity-suite/api/v1/auth/login');
+    final url = Uri.parse(
+      'https://productivity-suite-java.onrender.com/productivity-suite/api/v1/auth/login',
+    );
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
       if (response.statusCode == 200) {
-        state = state.copyWith(isAuthenticated: true, error: null);
-        return true;
+        final responseData = json.decode(response.body);
+        final token = responseData['data']?['accessToken'] as String?;
+        if (token != null) {
+          state = state.copyWith(
+            isAuthenticated: true,
+            error: null,
+            token: token,
+          );
+          return true;
+        }
+        state = state.copyWith(error: 'Invalid server response: no token');
+        return false;
       } else {
         state = state.copyWith(error: 'Login failed: ${response.body}');
         return false;
@@ -75,6 +94,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void logout() {
-    state = state.copyWith(isAuthenticated: false, error: null);
+    state = state.copyWith(isAuthenticated: false, error: null, token: null);
   }
 }
