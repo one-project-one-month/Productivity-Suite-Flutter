@@ -294,6 +294,49 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
                     children: [Expanded(child: _buildColorPicker())],
                   ),
                 ),
+                Row(
+                  children: [
+                    Text(
+                      "$formatDate | $totalLength characters",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color.fromARGB(255, 72, 72, 72),
+                      ),
+                    ),
+                  ],
+                ),
+                Divider(color: Color.fromARGB(255, 72, 72, 72)),
+
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: descriptionController,
+                    focusNode: descriptionFocusNode,
+                    maxLines: 500,
+                    decoration: InputDecoration(
+                      hintText: 'Start typing...',
+                      hintStyle: TextStyle(
+                        color: const Color.fromARGB(255, 107, 107, 107),
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Color Tag:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      _buildColorPicker(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
               ],
             ),
           ),

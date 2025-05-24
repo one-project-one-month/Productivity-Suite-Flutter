@@ -43,6 +43,12 @@ dependencies:
   http: ^1.4.0
   archive: ^4.0.7
   google_fonts: ^6.2.1
+  shared_preferences: ^2.5.3
+  
+
+  # For Note Taking
+  # note_taking:
+  #   path: ../Productivity-Suite-Flutter/note_taking
 
 
 

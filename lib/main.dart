@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:productivity_suite_flutter/notes/data/note.dart';
+import 'package:productivity_suite_flutter/pomodoro/utils/shared_prefs_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'main_app/config/route_config.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'notes/data/note.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await noteTakingSetup();
+  final prefs = await SharedPreferences.getInstance();
   GoRouter.optionURLReflectsImperativeAPIs = true;
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(
+    ProviderScope(
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      child: const MyApp(),
+    ),
+  );
 }
 
 Future<void> noteTakingSetup() async {
@@ -34,7 +42,6 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
       title: 'Productivity Suite',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
