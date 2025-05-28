@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
 
+
 class FolderShapeWithBorder extends StatelessWidget {
   final String label;
   final Color color;

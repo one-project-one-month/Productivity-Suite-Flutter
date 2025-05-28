@@ -55,6 +55,19 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     searchController.addListener(_onSearchChanged);
   }
 
+  @override
+  void didUpdateWidget(covariant NotesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterCategoryId != oldWidget.filterCategoryId) {
+      // Reset any sync-related state or flags here
+      // Re-fetch notes
+      ref.invalidate(notesProvider(widget.filterCategoryId));
+
+      // Rebuild to ensure sync icon & UI update
+      setState(() {});
+    }
+  }
+
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), () {
@@ -182,15 +195,15 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         : const SliverToBoxAdapter();
   }
 
-  Widget _buildOtherHeader(List<Note> allNotes) {
-    final hasPinned = allNotes.any((n) => n.isPinned == true);
-    return hasPinned
-        ? const SliverToBoxAdapter()
-        : SliverPersistentHeader(
-          pinned: true,
-          delegate: HeaderDelegate('📝 Others'),
-        );
-  }
+  // Widget _buildOtherHeader(List<Note> allNotes) {
+  //   final hasPinned = allNotes.any((n) => n.isPinned == true);
+  //   return hasPinned
+  //       ? const SliverToBoxAdapter()
+  //       : SliverPersistentHeader(
+  //         pinned: true,
+  //         delegate: HeaderDelegate('📝 Others'),
+  //       );
+  // }
 
   Widget _buildPinnedNotes(List<Note> pinnedNotes) {
     return SliverList(
@@ -210,56 +223,105 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   }
 
   Widget _buildSyncButton() {
+    final categoryId = widget.filterCategoryId;
+    if (categoryId == null) return const SizedBox.shrink();
+
     final syncStatus = ref.watch(syncStatusProvider);
 
-    if (widget.filterCategoryId == null) {
-      return const SizedBox.shrink();
-    }
-
-    IconData getIcon() {
-      switch (syncStatus) {
-        case SyncStatus.notSynced:
-          return Icons.cloud_upload_outlined;
-        case SyncStatus.syncing:
-          return Icons.sync;
-        case SyncStatus.synced:
-          return Icons.cloud_done;
-        case SyncStatus.error:
-          return Icons.cloud_off;
-      }
-    }
-
     return IconButton(
-      icon: Icon(getIcon()),
+      icon: _syncIcon(syncStatus),
       onPressed:
           syncStatus == SyncStatus.syncing
               ? null
               : () async {
-                try {
-                  final syncNotes = ref.read(syncNotesProvider);
-                  final result = await syncNotes(
-                    widget.filterCategoryId!,
-                    context,
-                  );
+                final syncNotes = ref.read(syncNotesProvider);
+                final result = await syncNotes(categoryId, context);
 
-                  if (result.success && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Successfully synced ${result.syncedNoteIds.length} notes',
-                        ),
-                      ),
-                    );
-                    // Refresh notes after sync
-                    ref.invalidate(notesProvider(widget.filterCategoryId));
-                  }
-                } catch (e) {
-                  // Error already shown via dialog
+                if (result.success && mounted) {
+                  ref.invalidate(notesProvider(categoryId));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sync completed successfully'),
+                    ),
+                  );
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sync failed: ${result.error}')),
+                  );
                 }
               },
-      tooltip: ref.watch(syncErrorProvider) ?? 'Sync notes to cloud',
+      tooltip: _syncTooltip(syncStatus),
     );
   }
+
+  String _syncTooltip(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.error:
+        return 'Sync error';
+      case SyncStatus.syncing:
+        return 'Synchronizing notes...';
+      case SyncStatus.synced:
+        return 'Notes are up to date';
+      default:
+        return 'Sync notes with cloud';
+    }
+  }
+
+  Icon _syncIcon(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.notSynced:
+        return const Icon(Icons.cloud_upload_outlined);
+      case SyncStatus.syncing:
+        return const Icon(Icons.sync, color: Colors.blue);
+      case SyncStatus.synced:
+        return const Icon(Icons.cloud_done, color: Colors.green);
+      case SyncStatus.error:
+        return const Icon(Icons.cloud_off, color: Colors.red);
+    }
+  }
+
+  // Widget _buildSyncButton() {
+  //   final syncStatus = ref.watch(syncStatusProvider);
+  //   if (widget.filterCategoryId == null) return const SizedBox.shrink();
+
+  //   IconData getIcon() {
+  //     switch (syncStatus) {
+  //       case SyncStatus.notSynced:
+  //         return Icons.cloud_upload_outlined;
+  //       case SyncStatus.syncing:
+  //         return Icons.sync;
+  //       case SyncStatus.synced:
+  //         return Icons.cloud_done;
+  //       case SyncStatus.error:
+  //         return Icons.cloud_off;
+  //     }
+  //   }
+
+  //   return IconButton(
+  //     icon: Icon(getIcon()),
+  //     onPressed:
+  //         syncStatus == SyncStatus.syncing
+  //             ? null
+  //             : () async {
+  //               final syncNotes = ref.read(syncStateProvider);
+  //               final result = await syncNotes(
+  //                 widget.filterCategoryId!,
+  //                 context,
+  //               );
+  //               if (result.success && mounted) {
+  //                 ScaffoldMessenger.of(context).showSnackBar(
+  //                   SnackBar(
+  //                     content: Text(
+  //                       'Successfully synced ${result.syncedNoteIds.length} notes',
+  //                     ),
+  //                   ),
+  //                 );
+  //                 ref.invalidate(notesProvider(widget.filterCategoryId));
+  //               }
+  //             },
+  //     tooltip: ref.watch(syncErrorProvider) ?? 'Sync notes to cloud',
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -267,11 +329,49 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
     return notesAsync.when(
       loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          () => const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          ),
       error:
           (error, stack) => Scaffold(
-            body: Center(child: Text('Error loading notes: $error')),
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(widget.appBarTitle),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Failed to load notes: ${error.toString()}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      // Refresh the data
+                      ref.invalidate(notesProvider(widget.filterCategoryId));
+
+                      // Optional: Force rebuild if needed
+                      setState(() {});
+                    },
+                    tooltip: 'Retry',
+                    iconSize: 40,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Tap to refresh',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ),
       data: (allNotes) {
         final query = searchController.text.toLowerCase();
@@ -491,7 +591,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   void _openDetail(Note note) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => NoteDetailScreen(noteId: note.id)),
+      MaterialPageRoute(
+        builder:
+            (_) => NoteDetailScreen(
+              noteId: note.id,
+              categoryId: note.categoryId ?? "",
+            ),
+      ),
     );
     // Refresh notes list after returning from detail screen
     ref.invalidate(notesProvider(widget.filterCategoryId));

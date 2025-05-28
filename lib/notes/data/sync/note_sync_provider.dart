@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:productivity_suite_flutter/notes/data/note_exception.dart';
 import '../note.dart';
-import '../note_repository.dart';
+import '../../repository/note_repository.dart';
 
 // Provider to handle note synchronization and merging
 final noteSyncProvider = Provider((ref) {
@@ -28,10 +28,9 @@ class NoteSyncService {
 
     try {
       // Get server notes
-      final serverNotes =
-          categoryId == null
-              ? await _repository.getAllNotes()
-              : await _repository.getNotesByCategory(categoryId);
+      final serverNotes = await _repository.getNotesByCategory(
+        categoryId ?? '',
+      );
 
       // Merge notes, preferring the more recently updated version
       final mergedNotes = _mergeNotes(localNotes, serverNotes);
@@ -142,4 +141,39 @@ class NoteSyncService {
 
     return mergedNotes;
   }
+
+ Future<void> updateNote(Note updatedNote) async {
+  Note? localNote;
+  try {
+    localNote = _notesBox.values.cast<Note>().firstWhere(
+      (note) => note.id == updatedNote.id && note.categoryId == updatedNote.categoryId,
+    );
+  } catch (_) {
+    localNote = null;
+  }
+
+  if (localNote != null) {
+    // Update the existing local note
+    localNote
+      ..title = updatedNote.title
+      ..description = updatedNote.description
+      ..colorValue = updatedNote.colorValue
+      ..isPinned = updatedNote.isPinned
+      ..updatedAt = updatedNote.updatedAt;
+    await localNote.save();
+  } else {
+    // No matching note found locally (by id and category), so add new one
+    await _notesBox.add(updatedNote);
+  }
+
+  // Try updating on server
+  try {
+    await _repository.updateNote(updatedNote);
+  } on UnauthorizedException {
+    rethrow;
+  } catch (e) {
+    print('Failed to update note on server: $e');
+  }
+}
+
 }

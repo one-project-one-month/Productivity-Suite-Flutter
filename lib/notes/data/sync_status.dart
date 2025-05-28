@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
-import 'package:productivity_suite_flutter/notes/data/note_repository.dart';
+import 'package:productivity_suite_flutter/notes/repository/note_repository.dart';
 import 'package:productivity_suite_flutter/notes/widgets/error_dialog.dart';
+
 
 enum SyncStatus { notSynced, syncing, synced, error }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'sync_status.dart';
+import '../data/sync_status.dart';
 
 // Initial state providers
 final syncStatusProvider = StateProvider<SyncStatus>(
