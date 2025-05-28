@@ -16,22 +16,40 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     return Scaffold(
       body: Column(children: [Expanded(child: shell)]),
       bottomNavigationBar: NavigationBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: const Color(0xff0045f3),
+        indicatorColor: const Color(0xff0045f3),
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (index) {
           shell.goBranch(index);
         },
         destinations: [
           NavigationDestination(
-            icon: Icon(Icons.access_time),
+            icon: Icon(
+              Icons.access_time,
+              color: shell.currentIndex == 0 ? Colors.white : null,
+            ),
             label: 'Pomodoro',
           ),
           NavigationDestination(
-            icon: Icon(Icons.checklist),
+            icon: Icon(
+              Icons.checklist,
+              color: shell.currentIndex == 1 ? Colors.white : null,
+            ),
             label: 'To Do List',
           ),
-          NavigationDestination(icon: Icon(Icons.note), label: 'Notes'),
           NavigationDestination(
-            icon: Icon(Icons.attach_money),
+            icon: Icon(
+              Icons.note,
+              color: shell.currentIndex == 2 ? Colors.white : null,
+            ),
+            label: 'Notes',
+          ),
+          NavigationDestination(
+            icon: Icon(
+              Icons.attach_money,
+              color: shell.currentIndex == 3 ? Colors.white : null,
+            ),
             label: 'Budget Tracker',
           ),
         ],

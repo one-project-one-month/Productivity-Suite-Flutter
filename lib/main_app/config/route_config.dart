@@ -1,12 +1,17 @@
 import 'package:go_router/go_router.dart';
 import 'package:productivity_suite_flutter/budgets/budgets.dart';
+import 'package:productivity_suite_flutter/notes/category.dart';
+import '../../auth/auth_screen.dart';
+import '../../auth/register_screen.dart';
+import '../../pomodoro/pomodoro.dart';
 import '../main_screen.dart';
-import '../screens/views/notes_screen.dart';
-import '../screens/views/pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
 final GoRouter routes = GoRouter(
+  initialLocation: '/login',
   routes: [
+    GoRoute(path: '/login', builder: (context, state) => AuthScreen()),
+    GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return MainScreen(shell: shell);
@@ -18,19 +23,29 @@ final GoRouter routes = GoRouter(
               name: 'home',
               path: '/',
               builder: (context, state) {
-                return PomodoroScreen();
+                return Pomodoro();
               },
             ),
           ],
         ),
+        /*StatefulShellBranch(
+          routes: [
+            GoRoute(
+              name: 'pomodoro',
+              path: '/pomodoro',
+              builder: (context, state) {
+                return Pomodoro();
+              },
+            ),
+          ],
+        ),*/
         StatefulShellBranch(
           routes: [
             GoRoute(
               name: 'to_do',
               path: '/to_do',
               builder: (context, state) {
-                String? name = state.uri.queryParameters['name'];
-                return ToDoScreen(name: name!);
+                return ToDoScreen();
               },
             ),
           ],
@@ -41,7 +56,7 @@ final GoRouter routes = GoRouter(
               name: 'notes',
               path: '/notes',
               builder: (context, state) {
-                return NotesScreen();
+                return CategoryScreen();
               },
             ),
           ],

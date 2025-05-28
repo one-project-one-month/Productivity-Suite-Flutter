@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ToDoScreen extends StatefulWidget {
-  const ToDoScreen({super.key, required this.name});
-  final String name;
+  const ToDoScreen({super.key});
 
   @override
   State<ToDoScreen> createState() => _ToDoScreenState();
