@@ -120,6 +120,22 @@ class AddTranscationWidget extends StatelessWidget {
   }
 }
 
+class ExpenseBreakdownWidget extends StatelessWidget {
+  const ExpenseBreakdownWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          "Expense Breakdown",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+}
+
 class RecentTranscationWidget extends StatelessWidget {
   RecentTranscationWidget({super.key});
   List<TranscationModel> temps = [
@@ -171,16 +187,13 @@ class RecentTranscationWidget extends StatelessWidget {
               TranscationModel obj = temps[index];
               return Container(
                 decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: const Color.fromARGB(255, 216, 216, 216),
-                      width: 2,
-                    ),
-                  ),
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   spacing: 8,
-                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Flexible(
                       flex: 2,
@@ -212,7 +225,7 @@ class RecentTranscationWidget extends StatelessWidget {
                       ),
                     ),
 
-                    Expanded(
+                    Flexible(
                       flex: 4,
                       child: FittedBox(
                         child: Text(
@@ -229,8 +242,8 @@ class RecentTranscationWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Expanded(
-                      flex: 1,
+                    Flexible(
+                      flex: 2,
                       child: IconButton(
                         onPressed: () {},
                         icon: Icon(Icons.delete),
