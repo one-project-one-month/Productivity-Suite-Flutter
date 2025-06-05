@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:productivity_suite_flutter/pomodoro/models/state_class.dart';
 
-import 'notifiers/timer_notifier.dart';
 import 'models/pomodoro_state_model.dart';
+import 'notifiers/pomodoro_state_notifier.dart';
 
 class Pomodoro extends StatelessWidget {
   const Pomodoro({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return PomodoroHomePage();
+    return const PomodoroHomePage();
   }
 }
-
-final pomodoroProvider = NotifierProvider<PomodoroNotifier, PomodoroState>(
-  () => PomodoroNotifier(),
-);
 
 class PomodoroHomePage extends ConsumerStatefulWidget {
   const PomodoroHomePage({super.key});
@@ -33,8 +30,11 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final mode = ref.read(pomodoroProvider).mode;
+      final mode = ref.read(pomodoroNotifierProvider).mode;
       _tabController.index = mode.index;
+
+      // Use the notifier's connection method instead of creating a new server
+      ref.read(pomodoroNotifierProvider.notifier).connect();
     });
   }
 
@@ -46,11 +46,30 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
 
   @override
   Widget build(BuildContext context) {
-    final pomodoro = ref.watch(pomodoroProvider);
-    final notifier = ref.read(pomodoroProvider.notifier);
-    ref.listen<PomodoroState>(pomodoroProvider, (prev, next) {
+    final pomodoro = ref.watch(pomodoroNotifierProvider);
+    final notifier = ref.read(pomodoroNotifierProvider.notifier);
+
+    ref.listen<PomodoroState>(pomodoroNotifierProvider, (prev, next) {
       if (prev?.mode != next.mode) {
         _tabController.animateTo(next.mode.index);
+      }
+
+      // Show error messages
+      if (next.errorMessage != null &&
+          next.errorMessage != prev?.errorMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Dismiss',
+              textColor: Colors.white,
+              onPressed: () {
+                notifier.clearError();
+              },
+            ),
+          ),
+        );
       }
     });
 
@@ -59,29 +78,37 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
       appBar: AppBar(
         backgroundColor: Colors.white,
         centerTitle: true,
-        title: const Text('Pomodoro Timer'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Consumer(
-            builder: (context, ref, _) {
-              return TabBar(
-                indicatorColor: const Color(0xff0045f3),
-                labelColor: const Color(0xff0045f3),
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Focus'),
-                  Tab(text: 'Short Break'),
-                  Tab(text: 'Long Break'),
-                ],
-                onTap: (index) {
-                  final selectedMode = PomodoroMode.values[index];
-                  if (pomodoro.mode != selectedMode) {
-                    notifier.changeMode(selectedMode);
-                  }
-                },
-              );
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Pomodoro Timer'),
+            const SizedBox(width: 8),
+            _buildConnectionIndicator(pomodoro.connectionState),
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              _showInputDialog(context, notifier, pomodoro);
             },
+            icon: const Icon(Icons.add_circle_outline),
           ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: const Color(0xff0045f3),
+          labelColor: const Color(0xff0045f3),
+          tabs: const [
+            Tab(text: 'Focus'),
+            Tab(text: 'Short Break'),
+            Tab(text: 'Long Break'),
+          ],
+          onTap: (index) {
+            final selectedMode = PomodoroMode.values[index];
+            if (pomodoro.mode != selectedMode && !pomodoro.isRunning) {
+              notifier.changeMode(selectedMode);
+            }
+          },
         ),
       ),
       body: Padding(
@@ -96,47 +123,124 @@ class _PomodoroHomePageState extends ConsumerState<PomodoroHomePage>
               children: [
                 IconButton(
                   iconSize: 32,
-                  icon:
-                      pomodoro.isRunning
-                          ? Icon(Icons.pause)
-                          : Icon(Icons.play_arrow),
+                  icon: _getPlayPauseIcon(pomodoro),
                   color: const Color(0xff0045f3),
-                  onPressed:
-                      pomodoro.isRunning ? notifier.pause : notifier.start,
-                  //label: Text(pomodoro.isRunning ? 'Pause' : 'Start'),
+                  onPressed: () {
+                    switch (StateClass.pState) {
+                      /*case PomodoroTimerState.running:
+                        notifier.stopTimer();
+                        print('Running :::::::::::');
+                        break;
+                      case PomodoroTimerState.paused:
+                        print('Resumed :::::::::::');
+                        break;
+                      case PomodoroTimerState.idle:
+                        print('Idle :::::::::::');
+                        notifier.startNewPomodoro();
+                        break;
+                      case PomodoroTimerState.completed:
+                        break;*/
+                      case 0:
+                        print('Running :::::::::::');
+                        notifier.startNewPomodoro();
+                        break;
+                      case 1:
+                        print('Paused :::::::::::');
+                        notifier.stopTimer();
+                        break;
+                      case 2:
+                        print('Resumed :::::::::::');
+                        notifier.resumeTimer(
+                          remainingTime: pomodoro.remainingTime,
+                          timerId: pomodoro.currentTimerId ?? 0,
+                          sequenceId: pomodoro.currentSequenceId ?? 0,
+                        );
+                        break;
+                      default:
+                        break;
+                    }
+                  },
                 ),
                 const SizedBox(width: 20),
                 IconButton(
                   iconSize: 32,
-                  icon: Icon(Icons.refresh),
+                  icon: const Icon(Icons.refresh),
                   color: const Color(0xff0045f3),
-                  onPressed: notifier.reset,
-                  //label: const Text('Reset'),
+                  onPressed: () {
+                    notifier.resetTimer(timerId: pomodoro.currentTimerId ?? 0);
+                  },
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            /*const SizedBox(height: 20),
             Text('Completed Sessions: ${pomodoro.completedSessions}'),
-            Text('Small(Work) Sessions: ${pomodoro.completedWorkSessions}'),
-            const SizedBox(height: 40),
-            /*Text(
-              'Set Long Break Duration (minutes): ${pomodoro.longBreakDuration ~/ 60} min',
-            ),
-            Slider(
-              value: pomodoro.longBreakDuration / 60,
-              min: 5,
-              max: 60,
-              divisions: 11,
-              label: '${pomodoro.longBreakDuration ~/ 60} min',
-              onChanged: (value) {
-                notifier.setLongBreakDuration(value.toInt());
-              },
-            ),*/
-            _ModeWidgets(),
+            Text('Work Sessions: ${pomodoro.completedWorkSessions}'),*/
+            const SizedBox(height: 20),
+            Expanded(child: const _ModeWidgets()),
           ],
         ),
       ),
     );
+  }
+
+  Widget _getPlayPauseIcon(PomodoroState pomodoro) {
+    switch (pomodoro.timerState) {
+      case PomodoroTimerState.running:
+        return const Icon(Icons.pause);
+      case PomodoroTimerState.paused:
+        return const Icon(Icons.play_arrow); // Resume icon
+      case PomodoroTimerState.idle:
+      case PomodoroTimerState.completed:
+      default:
+        return const Icon(Icons.play_arrow); // Start icon
+    }
+  }
+
+  void _handlePlayPausePress(PomodoroState state, PomodoroNotifier notifier) {
+    print(' ${state.timerState} :::::::::::');
+    switch (state.timerState) {
+      case PomodoroTimerState.running:
+        notifier.stopTimer();
+        break;
+      case PomodoroTimerState.paused:
+        notifier.resumeTimer(
+          remainingTime: state.remainingTime,
+          timerId: state.currentTimerId ?? 0,
+          sequenceId: state.currentSequenceId ?? 0,
+        );
+        print('Resumed Timer :::::::::::');
+        break;
+      default:
+        notifier.startNewPomodoro();
+        break;
+    }
+  }
+
+  Widget _buildConnectionIndicator(PomodoroConnectionState state) {
+    Color color;
+    IconData icon;
+
+    switch (state) {
+      case PomodoroConnectionState.connected:
+        color = Colors.green;
+        icon = Icons.wifi;
+        break;
+      case PomodoroConnectionState.connecting:
+        color = Colors.orange;
+        icon = Icons.wifi_protected_setup;
+        break;
+      case PomodoroConnectionState.error:
+        color = Colors.red;
+        icon = Icons.wifi_off;
+        break;
+      case PomodoroConnectionState.disconnected:
+      default:
+        color = Colors.grey;
+        icon = Icons.wifi_off;
+        break;
+    }
+
+    return Icon(icon, color: color, size: 24);
   }
 }
 
@@ -145,39 +249,58 @@ class _ModeWidgets extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pomodoroState = ref.watch(pomodoroProvider);
-    final notifier = ref.read(pomodoroProvider.notifier);
-    return Column(
+    final state = ref.watch(pomodoroNotifierProvider);
+    final notifier = ref.read(pomodoroNotifierProvider.notifier);
+
+    return ListView(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Focus Session',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Row(children: [Text('25 min'), Icon(Icons.arrow_right)]),
-          ],
-        ),
-        SizedBox(height: 8.0),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Short Break',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Row(children: [Text('5 min'), Icon(Icons.arrow_right)]),
-          ],
-        ),
-        SizedBox(height: 8.0),
         InkWell(
           onTap: () async {
             final selectedMinutes = await showDialog<int>(
               context: context,
               builder:
                   (_) => CustomTimePickerDialog(
-                    initialMinutes: pomodoroState.longBreakDuration ~/ 60,
+                    initialMinutes: state.focusDuration ~/ 60,
+                  ),
+            );
+
+            if (selectedMinutes != null) {
+              notifier.setFocusDuration(selectedMinutes);
+            }
+          },
+          child: _modeRow(
+            title: 'Focus Session',
+            value: '${state.focusDuration ~/ 60} min',
+            isInteractive: true,
+          ),
+        ),
+        InkWell(
+          onTap: () async {
+            final selectedMinutes = await showDialog<int>(
+              context: context,
+              builder:
+                  (_) => CustomTimePickerDialog(
+                    initialMinutes: state.shortBreakDuration ~/ 60,
+                  ),
+            );
+
+            if (selectedMinutes != null) {
+              notifier.setShortBreakDuration(selectedMinutes);
+            }
+          },
+          child: _modeRow(
+            title: 'Short Break',
+            value: '${state.shortBreakDuration ~/ 60} min',
+            isInteractive: true,
+          ),
+        ),
+        InkWell(
+          onTap: () async {
+            final selectedMinutes = await showDialog<int>(
+              context: context,
+              builder:
+                  (_) => CustomTimePickerDialog(
+                    initialMinutes: state.longBreakDuration ~/ 60,
                   ),
             );
 
@@ -185,34 +308,39 @@ class _ModeWidgets extends ConsumerWidget {
               notifier.setLongBreakDuration(selectedMinutes);
             }
           },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Long Break',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Row(
-                children: [
-                  Text('${pomodoroState.longBreakDuration ~/ 60} min'),
-                  Icon(Icons.arrow_right),
-                ],
-              ),
-            ],
+          child: _modeRow(
+            title: 'Long Break',
+            value: '${state.longBreakDuration ~/ 60} min',
+            isInteractive: true,
           ),
         ),
-        SizedBox(height: 8.0),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Long Break After',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Row(children: [Text('5 secs'), Icon(Icons.arrow_right)]),
-          ],
-        ),
+        _modeRow(title: 'Long Break After', value: '4 sessions'),
       ],
+    );
+  }
+
+  Widget _modeRow({
+    required String title,
+    required String value,
+    bool isInteractive = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Row(
+            children: [
+              Text(value),
+              if (isInteractive) const Icon(Icons.arrow_right),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -227,30 +355,27 @@ class CustomTimePickerDialog extends StatelessWidget {
     int selectedMinutes = initialMinutes;
 
     return AlertDialog(
-      title: Text('Select Time'),
+      title: const Text('Select Time'),
       content: StatefulBuilder(
         builder: (context, setState) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                icon: Icon(Icons.remove),
+                icon: const Icon(Icons.remove),
                 onPressed: () {
                   if (selectedMinutes > 1) {
-                    setState(() {
-                      selectedMinutes--;
-                    });
+                    setState(() => selectedMinutes--);
                   }
                 },
               ),
-              Text('$selectedMinutes min', style: TextStyle(fontSize: 24)),
+              Text(
+                '$selectedMinutes min',
+                style: const TextStyle(fontSize: 24),
+              ),
               IconButton(
-                icon: Icon(Icons.add),
-                onPressed: () {
-                  setState(() {
-                    selectedMinutes++;
-                  });
-                },
+                icon: const Icon(Icons.add),
+                onPressed: () => setState(() => selectedMinutes++),
               ),
             ],
           );
@@ -258,39 +383,182 @@ class CustomTimePickerDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context), // Cancel
-          child: Text('Cancel', style: TextStyle(color: Color(0xff0045f3))),
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: Color(0xff0045f3)),
+          ),
         ),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Color(0xff0045f3)),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xff0045f3),
+          ),
           onPressed: () => Navigator.pop(context, selectedMinutes),
-          child: Text('OK'),
+          child: const Text('OK'),
         ),
       ],
     );
   }
 }
 
+Future<void> _showInputDialog(
+  BuildContext context,
+  PomodoroNotifier notifier,
+  PomodoroState state,
+) async {
+  final List<String> alertDialogDropdownOptions = [
+    'Default',
+    'Work',
+    'Study',
+    'Social',
+  ];
+  String? selectedDropdownValue = alertDialogDropdownOptions[0];
+  final TextEditingController textFieldController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  final Map<String, dynamic>? result = await showDialog<Map<String, dynamic>>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setStateInDialog) {
+          return AlertDialog(
+            title: const Text('Choose Type:'),
+            content: SingleChildScrollView(
+              // In case content is too long for the screen
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // To make the column compact
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'Select Type:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      value: selectedDropdownValue,
+                      isExpanded: true,
+                      hint: const Text('Select an option'),
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onChanged: (String? newValue) {
+                        setStateInDialog(() {
+                          selectedDropdownValue = newValue;
+                        });
+                      },
+                      items:
+                          alertDialogDropdownOptions
+                              .map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              })
+                              .toList(),
+                      validator:
+                          (value) =>
+                              value == null ? 'Please select an option' : null,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Enter Description:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: textFieldController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter description here...',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter some descriptions';
+                        }
+                        return null;
+                      },
+                      maxLines: 3, // Allow multi-line input
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(); // Return null
+                },
+              ),
+              FilledButton(
+                // Or ElevatedButton
+                child: const Text('OK'),
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    Navigator.of(dialogContext).pop({
+                      'selectedOption': selectedDropdownValue,
+                      'description': textFieldController.text,
+                    });
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  // Handle the result
+  if (result != null) {
+    final currentIndex = alertDialogDropdownOptions.indexOf(
+      result['selectedOption'],
+    );
+    notifier.setSelectedTaskType(currentIndex);
+    if (state.isNewPomodoro == false) {
+      notifier.startNewPomodoro(
+        timerType: currentIndex,
+        description: result['description'],
+        duration: state.remainingTime,
+      );
+    } else {
+      notifier.startExistingPomodoro(
+        duration: state.remainingTime,
+        remainingTime: state.remainingTime,
+        timerType: state.selectedTaskTypeIndex,
+        sequenceId: state.currentSequenceId ?? 0,
+      );
+    }
+  } else {
+    print('Dialog canceled.');
+  }
+}
+
 Widget _buildTimerDisplay(PomodoroState state) {
-  final minutes = (state.remainingSeconds ~/ 60).toString().padLeft(2, '0');
-  final seconds = (state.remainingSeconds % 60).toString().padLeft(2, '0');
-  final Color activeSessionColor = const Color(0xff0045f3);
-  final Color inactiveSessionColor = Colors.grey.shade300;
-  final int totalIndicators = 4;
+  final minutes = (state.remainingTime ~/ 60).toString().padLeft(2, '0');
+  final seconds = (state.remainingTime % 60).toString().padLeft(2, '0');
+  const Color activeColor = Color(0xff0045f3);
+  final Color inactiveColor = Colors.grey.shade300;
 
   return Stack(
     alignment: Alignment.center,
     children: [
-      Center(
-        child: SizedBox(
-          width: 280,
-          height: 280,
-          child: CircularProgressIndicator(
-            value: _calculateProgress(state),
-            backgroundColor: Colors.grey.shade300,
-            strokeWidth: 12,
-            valueColor: AlwaysStoppedAnimation<Color>(_getProgressColor(state)),
-          ),
+      SizedBox(
+        width: 250,
+        height: 250,
+        child: CircularProgressIndicator(
+          value: _calculateProgress(state),
+          backgroundColor: inactiveColor,
+          strokeWidth: 12,
+          valueColor: AlwaysStoppedAnimation<Color>(_getProgressColor(state)),
         ),
       ),
       Positioned(top: 40, child: _getIconForMode(state.mode)),
@@ -298,30 +566,25 @@ Widget _buildTimerDisplay(PomodoroState state) {
         '$minutes : $seconds',
         style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
       ),
-
       Positioned(
         bottom: 32,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
-              children: List.generate(totalIndicators, (index) {
+              children: List.generate(4, (index) {
                 bool isActive = (index + 1) <= state.completedWorkSessions;
                 return Padding(
-                  padding: EdgeInsets.only(
-                    right: (index < totalIndicators - 1) ? 3.0 : 0.0,
-                  ),
+                  padding: EdgeInsets.only(right: index < 3 ? 3.0 : 0),
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    decoration: BoxDecoration(
-                      color:
-                          isActive ? activeSessionColor : inactiveSessionColor,
-                      borderRadius: BorderRadius.all(Radius.circular(4.0)),
-                    ),
+                    duration: const Duration(milliseconds: 300),
                     width: 8,
                     height: 24,
+                    decoration: BoxDecoration(
+                      color: isActive ? activeColor : inactiveColor,
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
                   ),
                 );
               }),
@@ -329,17 +592,13 @@ Widget _buildTimerDisplay(PomodoroState state) {
             const SizedBox(height: 8),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
               child: Text(
-                state.mode.toString().split('.').last.toUpperCase(),
+                state.mode.name.toUpperCase(),
                 key: ValueKey(state.mode),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
           ],
@@ -349,71 +608,42 @@ Widget _buildTimerDisplay(PomodoroState state) {
   );
 }
 
-/*double _calculateProgress(PomodoroState state) {
-  final totalSeconds = state.remainingSeconds;
-
-  int totalDuration;
-  switch (state.mode) {
-    case PomodoroMode.work:
-      totalDuration = 1500;
-      break;
-    case PomodoroMode.shortBreak:
-      totalDuration = 900;
-      break;
-    case PomodoroMode.longBreak:
-      totalDuration = state.longBreakDuration;
-      break;
-  }
-
-  return 1 - (totalSeconds / totalDuration);
-}*/
-
-Icon _getIconForMode(PomodoroMode mode) {
-  double iconSize = 32;
-  Color iconColor = Color(0xff0045f3);
-  switch (mode) {
-    case PomodoroMode.work:
-      return Icon(
-        Icons.laptop_mac,
-        size: iconSize,
-        color: iconColor,
-      ); // Example icons
-    case PomodoroMode.shortBreak:
-      return Icon(Icons.coffee, size: iconSize, color: iconColor);
-    case PomodoroMode.longBreak:
-      return Icon(Icons.bedtime_outlined, size: iconSize, color: iconColor);
-    //   return Icons.device_unknown;
-  }
-}
-
 double _calculateProgress(PomodoroState state) {
   final total = switch (state.mode) {
-    PomodoroMode.work => 10,
-    PomodoroMode.shortBreak => 5,
+    PomodoroMode.work => 25 * 60,
+    PomodoroMode.shortBreak => 5 * 60,
     PomodoroMode.longBreak => state.longBreakDuration,
   };
 
-  return 1 - (state.remainingSeconds / total);
+  final remaining = state.remainingTime;
+  return 1 - (remaining / total);
 }
 
 Color _getProgressColor(PomodoroState state) {
   final progress = _calculateProgress(state);
-
-  // Interpolate from red (0%) -> orange (50%) -> green (100%)
   if (progress < 0.5) {
-    // Red to orange
     return Color.lerp(
       Colors.blue.shade200,
       Colors.blue.shade400,
       progress * 2,
     )!;
-    //return Color(0xff0045F3);
   } else {
-    // Orange to green
     return Color.lerp(
       Colors.blue.shade500,
-      Color(0xff0045f3),
+      const Color(0xff0045f3),
       (progress - 0.5) * 2,
     )!;
+  }
+}
+
+Icon _getIconForMode(PomodoroMode mode) {
+  const color = Color(0xff0045f3);
+  switch (mode) {
+    case PomodoroMode.work:
+      return const Icon(Icons.laptop_mac, size: 32, color: color);
+    case PomodoroMode.shortBreak:
+      return const Icon(Icons.coffee, size: 32, color: color);
+    case PomodoroMode.longBreak:
+      return const Icon(Icons.bedtime_outlined, size: 32, color: color);
   }
 }
