@@ -4,8 +4,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'data/compress_data.dart';
 import 'data/note.dart';
-import 'data/sync/note_sync_provider.dart';
+import 'provider/note_sync_provider.dart';
 import 'widgets/color_picker.dart';
+import 'package:collection/collection.dart';
 
 // Provider for note details with local-first approach
 final noteDetailProvider = FutureProvider.family<Note?, String>((
@@ -15,26 +16,27 @@ final noteDetailProvider = FutureProvider.family<Note?, String>((
   final syncService = ref.read(noteSyncProvider);
 
   // First try to get from local
-  final box = await Hive.openBox<Note>('notesBox');
-  final localNotes = box.values.where((note) => note.id == id);
+  // final box = await Hive.openBox<Note>('notesBox');
+  // final localNote = box.values.firstWhereOrNull((note) => note.id == id);
 
-  if (localNotes.isNotEmpty) {
-    return localNotes.first;
-  }
+  // if (localNote != null) {
+  //   return localNote;
+  // }
 
   // If not found locally, try server
   try {
     final serverNote = await syncService.getNoteById(id);
-    if (serverNote != null) {
-      // Store in local for future access
-      await box.add(serverNote);
-    }
+    // if (serverNote != null) {
+    //   // ✅ Use put instead of add, and optionally clone the object
+    //   await box.put(serverNote.id, serverNote.copyWith());
+    // }
     return serverNote;
   } catch (e) {
     print('Error fetching note from server: $e');
     return null;
   }
 });
+
 
 class NoteDetailScreen extends ConsumerStatefulWidget {
   final String noteId;
@@ -229,19 +231,19 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
     await syncService.updateNote(updatedNote);
 
     if (mounted) {
-      ref.invalidate(noteDetailProvider(widget.noteId));
+      ref.invalidate(noteDetailProvider(widget.noteId.toString()));
       Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final noteAsync = ref.watch(noteDetailProvider(widget.noteId));
+    final noteAsync = ref.watch(noteDetailProvider(widget.noteId.toString()));
 
     return noteAsync.when(
       loading:
           () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+              const Scaffold(body: Center(child: CircularProgressIndicator.adaptive())),
       error:
           (error, stack) => Scaffold(
             body: Center(
@@ -254,7 +256,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      ref.invalidate(noteDetailProvider(widget.noteId));
+                      ref.invalidate(noteDetailProvider(widget.noteId.toString()));
                     },
                     child: const Text('Retry'),
                   ),

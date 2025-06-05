@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:productivity_suite_flutter/notes/data/compress_data.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
+import 'package:productivity_suite_flutter/notes/provider/note_sync_provider.dart';
+import 'package:productivity_suite_flutter/notes/repository/note_repository.dart';
 import 'package:productivity_suite_flutter/notes/widgets/color_picker.dart';
 
-class CreateNoteScreen extends StatefulWidget {
-  final Box<Note> notesBox;
+class CreateNoteScreen extends ConsumerStatefulWidget {
+  //final Box<Note> notesBox;
   final String? categoryId;
 
-  const CreateNoteScreen({super.key, required this.notesBox, this.categoryId});
+  const CreateNoteScreen({super.key, //required this.notesBox, 
+  this.categoryId});
 
   @override
-  State<CreateNoteScreen> createState() => _CreateNoteScreenState();
+  ConsumerState<CreateNoteScreen> createState() => _CreateNoteScreenState();
 }
 
-class _CreateNoteScreenState extends State<CreateNoteScreen> {
+class _CreateNoteScreenState extends ConsumerState<CreateNoteScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final FocusNode titleFocusNode = FocusNode();
@@ -176,7 +179,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
     );
   }
 
-  void _saveNote() {
+  void _saveNote() async {
     final titleText = titleController.text.trim();
     final descriptionText = descriptionController.text.trim();
 
@@ -195,7 +198,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
             : 'CMP:${CompressString.compressString(descriptionText)}';
 
     final note = Note(
-      id: DateTime.now().toIso8601String(),
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: compressedTitle,
       categoryId: widget.categoryId,
       description: compressedDescription,
@@ -205,8 +208,9 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
       isPinned: false,
       colorValue: selectedColor.value,
     );
-
-    widget.notesBox.add(note);
+    final syncService = ref.watch(noteRepositoryProvider);
+    await syncService.bulkUploadNotes([note], widget.categoryId ?? '');
+    // widget.notesBox.add(note);
     Navigator.of(context).pop();
   }
 
@@ -222,8 +226,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: Icon(_isEditing ? Icons.check : Icons.arrow_back),
-          onPressed:
-              _isEditing ? _saveNote : () => Navigator.of(context).pop(),
+          onPressed: _isEditing ? _saveNote : () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
@@ -251,7 +254,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
                 maxLines: 1,
                 decoration: InputDecoration(
                   border: InputBorder.none,
-    
+
                   hintText: 'Title...',
                   hintStyle: TextStyle(
                     color: const Color.fromARGB(255, 107, 107, 107),
@@ -270,7 +273,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
                 ],
               ),
               Divider(color: Color.fromARGB(255, 72, 72, 72)),
-    
+
               Expanded(
                 flex: 2,
                 child: TextField(
@@ -294,8 +297,8 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
                   children: [Expanded(child: _buildColorPicker())],
                 ),
               ),
-            
-                     const SizedBox(height: 10),
+
+              const SizedBox(height: 10),
             ],
           ),
         ),

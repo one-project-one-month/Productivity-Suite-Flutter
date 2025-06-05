@@ -1,15 +1,12 @@
-
-
 import 'package:productivity_suite_flutter/notes/data/note.dart';
 
 class NoteDTO {
-  final String id;
+  final int id;
   final String title;
   final String body;
   final int? colorValue;
   final bool isPinned;
   final String categoryId;
-
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -18,27 +15,25 @@ class NoteDTO {
     required this.title,
     required this.body,
     required this.categoryId,
-  
+
     this.colorValue,
     required this.isPinned,
     required this.createdAt,
     required this.updatedAt,
   });
 
-  factory NoteDTO.fromJson(Map<String, dynamic> json, {
-     String? categoryId,
- 
-  }) {
+  factory NoteDTO.fromJson(Map<String, dynamic> json, {String? categoryId}) {
     final colorStr = json['color']?.toString() ?? '';
-    final cleanedColor = colorStr.startsWith('#') ? colorStr.substring(1) : colorStr;
+    final cleanedColor =
+        colorStr.startsWith('#') ? colorStr.substring(1) : colorStr;
     final colorValue = int.tryParse('0xFF$cleanedColor');
 
     return NoteDTO(
-      id: json['id'].toString(),
+      id: json['id'],
       title: json['title'].toString(),
       body: json['body'].toString(),
-      categoryId: categoryId??'',
-    
+      categoryId: categoryId ?? '',
+
       colorValue: colorValue,
       isPinned: json['pinned'] ?? false,
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
@@ -53,25 +48,24 @@ class NoteDTO {
     'colorValue': colorValue,
     'isPinned': isPinned,
     'categoryId': categoryId,
-  
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
 
   factory NoteDTO.fromNote(Note note) => NoteDTO(
-    id: note.id,
+    id: int.parse(note.id),
     title: note.title,
     body: note.description,
     colorValue: note.colorValue,
     isPinned: note.isPinned,
     categoryId: note.categoryId ?? '',
-    
+
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
   );
 
   Note toNote() => Note(
-    id: id,
+    id: id.toString(),
     title: title,
     description: body,
     type: NoteType.text,
@@ -80,8 +74,26 @@ class NoteDTO {
     createdAt: createdAt,
     updatedAt: updatedAt,
     categoryId: categoryId,
- 
   );
+
+
+
+  factory NoteDTO.fromNoteDetailsJson(Map<String, dynamic> json) {
+    final colorStr = json['noteColor']?.toString() ?? '';
+    final cleanedColor =
+        colorStr.startsWith('#') ? colorStr.substring(1) : colorStr;
+    final colorValue = int.tryParse('0xFF$cleanedColor');
+    return NoteDTO(
+      id: json['noteId'],
+      title: json['noteTitle'].toString(),
+      body: json['noteBody'].toString(),
+      categoryId: json['categoryId'].toString(),
+      colorValue: colorValue,
+      isPinned: json['pinned'] ?? false,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt']),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updatedAt']),
+    );
+  }
 }
 
 class CategoryWithNotes {
@@ -102,10 +114,13 @@ class CategoryWithNotes {
     return CategoryWithNotes(
       categoryId: catId,
       categoryName: catName,
-      notes: (json['notes'] as List<dynamic>)
-          .map((noteJson) =>
-              NoteDTO.fromJson(noteJson, categoryId: catId,).toNote())
-          .toList(),
+      notes:
+          (json['notes'] as List<dynamic>)
+              .map(
+                (noteJson) =>
+                    NoteDTO.fromJson(noteJson, categoryId: catId).toNote(),
+              )
+              .toList(),
     );
   }
 

@@ -31,7 +31,8 @@ class NoteRepository {
       _ref = ref;
 
   Map<String, String> get _headers {
-    final token = _ref.read(authProvider).token;
+    final token =
+        _ref.read(authProvider).token;
     if (token == null) {
       throw UnauthorizedException('Authentication token not found');
     }
@@ -39,6 +40,15 @@ class NoteRepository {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     };
+  }
+
+  Map<String, String> get _pinHeader {
+    final token =
+        "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6NSwiZW1haWwiOiJ0ZXN0QGdtYWlsLmNvbSIsInN1YiI6InRlc3RAZ21haWwuY29tIiwiaXNzIjoiMVAxTSIsImlhdCI6MTc0OTExMjYzNywiZXhwIjoxNzQ5MTIzNDM3fQ.l9PesiqltmF6fxkP_YN3tYO7N2FS9F3fls-Wsc9O9Rw";
+    if (token == null) {
+      throw UnauthorizedException('Authentication token not found');
+    }
+    return {'Authorization': 'Bearer $token'};
   }
 
   Future<T> _handleRequest<T>(Future<T> Function() request) async {
@@ -138,7 +148,7 @@ class NoteRepository {
         Uri.parse('$baseUrl/notes/${note.id}'),
         headers: _headers,
         body: json.encode({
-          'id': int.parse(note.id),
+          'id': note.id,
           'title': decompressedTitle,
           'body': decompressedBody,
           'color': hexColor,
@@ -150,7 +160,7 @@ class NoteRepository {
       );
 
       final data = await _handleResponse(response);
-      return NoteDTO.fromJson(data).toNote();
+      return NoteDTO.fromNoteDetailsJson(data).toNote();
     });
   }
 
@@ -173,7 +183,7 @@ class NoteRepository {
         headers: _headers,
       );
       final data = await _handleResponse(response);
-      return NoteDTO.fromJson(data).toNote();
+      return NoteDTO.fromNoteDetailsJson(data['data']).toNote();
     });
   }
 
@@ -183,7 +193,6 @@ class NoteRepository {
     String categoryId,
   ) async {
     return _handleRequest(() async {
-      // Prepare the note list
       final noteList =
           notes.map((note) {
             final decompressedTitle = CompressString.decompressString(
@@ -227,6 +236,18 @@ class NoteRepository {
       }
 
       return SyncResult(success: true, syncedNoteIds: syncedIds);
+    });
+  }
+
+  Future<bool> pinnedNote(String noteId) async {
+    return _handleRequest(() async {
+      final response = await _client.patch(
+        Uri.parse('$baseUrl/notes/$noteId/pin'),
+        headers: _pinHeader, // Only Authorization, no Content-Type
+        body: {},
+      );
+      final Map<String, dynamic> responseData = await _handleResponse(response);
+      return responseData['data'] as bool;
     });
   }
 }
