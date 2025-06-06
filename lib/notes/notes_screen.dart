@@ -2,13 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:productivity_suite_flutter/notes/repository/note_repository.dart';
 import 'data/compress_data.dart';
 import 'data/note.dart';
 import 'note_detail_screen.dart';
 import 'create_note_screen.dart';
 import 'data/sync/sync_status.dart';
 import 'data/sync/sync_provider.dart';
-import 'data/sync/note_sync_provider.dart';
+import 'provider/note_sync_provider.dart';
 import 'widgets/header_delegate.dart';
 import 'widgets/note_list.dart';
 import 'widgets/search_header.dart';
@@ -39,20 +40,34 @@ class NotesScreen extends ConsumerStatefulWidget {
 }
 
 class _NotesScreenState extends ConsumerState<NotesScreen> {
-  late final Box<Note> box;
+  //  late final Box<Note> box;
   final TextEditingController searchController = TextEditingController();
   Timer? _debounce;
   final FocusNode searchFocusNode = FocusNode();
 
   // Selection state
-  final Set<int> _selectedKeys = {};
+  final Set<String> _selectedKeys = {};
   bool _selectionMode = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    box = widget.notesBox;
+    // box = widget.notesBox;
     searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant NotesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterCategoryId != oldWidget.filterCategoryId) {
+      // Reset any sync-related state or flags here
+      // Re-fetch notes
+      ref.invalidate(notesProvider(widget.filterCategoryId));
+
+      // Rebuild to ensure sync icon & UI update
+      setState(() {});
+    }
   }
 
   void _onSearchChanged() {
@@ -76,21 +91,28 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   void _onLongPressNote(Note note) {
     setState(() {
       _selectionMode = true;
-      _selectedKeys.add(note.key as int);
+      final key = note.id;
+      if (key != '') {
+        _selectedKeys.add(key);
+      }
     });
   }
 
   void _onTapNote(Note note) {
     if (_selectionMode) {
-      final key = note.key as int;
-      setState(() {
-        if (_selectedKeys.contains(key)) {
-          _selectedKeys.remove(key);
-          if (_selectedKeys.isEmpty) _selectionMode = false;
-        } else {
-          _selectedKeys.add(key);
-        }
-      });
+      final key = note.id;
+      String? parsedKey;
+      parsedKey = key;
+      if (parsedKey != '') {
+        setState(() {
+          if (_selectedKeys.contains(parsedKey)) {
+            _selectedKeys.remove(parsedKey);
+            if (_selectedKeys.isEmpty) _selectionMode = false;
+          } else {
+            _selectedKeys.add(parsedKey!);
+          }
+        });
+      }
     } else {
       _openDetail(note);
       setState(() {});
@@ -99,7 +121,15 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   void _selectAll(List<Note> notes) {
     setState(() {
-      _selectedKeys.addAll(notes.map((n) => n.key as int));
+      _selectedKeys.clear();
+      for (final n in notes) {
+        final key = n.id;
+        String? parsedKey;
+        parsedKey = key;
+        if (parsedKey != '') {
+          _selectedKeys.add(parsedKey);
+        }
+      }
       _selectionMode = true;
     });
   }
@@ -114,23 +144,21 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   Future<void> _deleteSelected() async {
     try {
       final keysToDelete = _selectedKeys.toList();
-      final notesToDelete =
-          keysToDelete.map((key) => box.get(key)).whereType<Note>().toList();
+      final noteRepository = ref.read(noteRepositoryProvider);
 
-      // Delete from local storage
-      await box.deleteAll(keysToDelete);
+      // Directly delete notes by id
+      await Future.wait(
+        keysToDelete.map((id) async {
+          await noteRepository.deleteNote(id);
+          // Uncomment if you want to delete from server as well
+          // if (widget.filterCategoryId != null) {
+          //   final syncService = ref.read(noteSyncProvider);
+          //   await syncService.deleteNote(id);
+          // }
+        }),
+      );
 
-      // Delete from server if category has sync enabled
-      if (widget.filterCategoryId != null) {
-        final syncService = ref.read(noteSyncProvider);
-        await Future.wait(
-          notesToDelete.map((note) => syncService.deleteNote(note.id)),
-        );
-      }
-
-      // Refresh the notes list
       ref.invalidate(notesProvider(widget.filterCategoryId));
-
       _clearSelection();
     } catch (e) {
       if (mounted) {
@@ -141,14 +169,55 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     }
   }
 
+  // Future<void> _deleteSelected() async {
+  //   try {
+  //     final keysToDelete = _selectedKeys.toList();
+  //     final notesToDelete =
+  //         keysToDelete.map((key) => box.get(key)).whereType<Note>().toList();
+
+  //     // Delete from local storage
+  //     await box.deleteAll(keysToDelete);
+
+  //     // Delete from server if category has sync enabled
+  //     if (widget.filterCategoryId != null) {
+  //       final syncService = ref.read(noteSyncProvider);
+  //       await Future.wait(
+  //         notesToDelete.map((note) => syncService.deleteNote(note.id)),
+  //       );
+  //     }
+
+  //     // Refresh the notes list
+  //     ref.invalidate(notesProvider(widget.filterCategoryId));
+
+  //     _clearSelection();
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(
+  //         context,
+  //       ).showSnackBar(SnackBar(content: Text('Error deleting notes: $e')));
+  //     }
+  //   }
+  // }
+
   Future<void> _togglePin(Note note) async {
-    setState(() {
-      note.isPinned = !(note.isPinned);
-      note.updatedAt = DateTime.now();
-    });
-    await note.save();
-    setState(() {});
+    try {
+      final syncService = ref.watch(noteRepositoryProvider);
+      final newPinnedStatus = !note.isPinned;
+      await syncService.pinnedNote(note.id);
+      note.isPinned = newPinnedStatus;
+      setState(() {});
+    } catch (e) {
+      print('Failed to pin/unpin note: $e');
+    }
   }
+  // Future<void> _togglePin(Note note) async {
+  //   setState(() {
+  //     note.isPinned = !(note.isPinned);
+  //     note.updatedAt = DateTime.now();
+  //   });
+  //   await note.save();
+  //   setState(() {});
+  // }
 
   Future<void> _deleteNote(Note note) async {
     try {
@@ -182,83 +251,81 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         : const SliverToBoxAdapter();
   }
 
-  Widget _buildOtherHeader(List<Note> allNotes) {
-    final hasPinned = allNotes.any((n) => n.isPinned == true);
-    return hasPinned
-        ? const SliverToBoxAdapter()
-        : SliverPersistentHeader(
-          pinned: true,
-          delegate: HeaderDelegate('📝 Others'),
-        );
-  }
-
   Widget _buildPinnedNotes(List<Note> pinnedNotes) {
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, idx) => NoteListItem(
-          note: pinnedNotes[idx],
-          onTap: () => _onTapNote(pinnedNotes[idx]),
-          onPin: () => _togglePin(pinnedNotes[idx]),
-          onDelete: () => _deleteNote(pinnedNotes[idx]),
+      delegate: SliverChildBuilderDelegate((context, idx) {
+        final note = pinnedNotes[idx];
+        final key = note.id;
+        final isSelected = key != '' && _selectedKeys.contains(key);
+        return NoteListItem(
+          note: note,
+          onTap: () => _onTapNote(note),
+          onPinAsync: () async => await _togglePin(note),
+          onDelete: () => _deleteNote(note),
           selectionMode: _selectionMode,
-          selected: _selectedKeys.contains(pinnedNotes[idx].key),
-          onLongPress: () => _onLongPressNote(pinnedNotes[idx]),
-        ),
-        childCount: pinnedNotes.length,
-      ),
+          selected: isSelected,
+          onLongPress: () => _onLongPressNote(note),
+        );
+      }, childCount: pinnedNotes.length),
     );
   }
 
   Widget _buildSyncButton() {
+    final categoryId = widget.filterCategoryId;
+    if (categoryId == null) return const SizedBox.shrink();
+
     final syncStatus = ref.watch(syncStatusProvider);
 
-    if (widget.filterCategoryId == null) {
-      return const SizedBox.shrink();
-    }
-
-    IconData getIcon() {
-      switch (syncStatus) {
-        case SyncStatus.notSynced:
-          return Icons.cloud_upload_outlined;
-        case SyncStatus.syncing:
-          return Icons.sync;
-        case SyncStatus.synced:
-          return Icons.cloud_done;
-        case SyncStatus.error:
-          return Icons.cloud_off;
-      }
-    }
-
     return IconButton(
-      icon: Icon(getIcon()),
+      icon: _syncIcon(syncStatus),
       onPressed:
           syncStatus == SyncStatus.syncing
               ? null
               : () async {
-                try {
-                  final syncNotes = ref.read(syncNotesProvider);
-                  final result = await syncNotes(
-                    widget.filterCategoryId!,
-                    context,
-                  );
+                final syncNotes = ref.read(syncNotesProvider);
+                final result = await syncNotes(categoryId, context);
 
-                  if (result.success && mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Successfully synced ${result.syncedNoteIds.length} notes',
-                        ),
-                      ),
-                    );
-                    // Refresh notes after sync
-                    ref.invalidate(notesProvider(widget.filterCategoryId));
-                  }
-                } catch (e) {
-                  // Error already shown via dialog
+                if (result.success && mounted) {
+                  ref.invalidate(notesProvider(categoryId));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Sync completed successfully'),
+                    ),
+                  );
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sync failed: ${result.error}')),
+                  );
                 }
               },
-      tooltip: ref.watch(syncErrorProvider) ?? 'Sync notes to cloud',
+      tooltip: _syncTooltip(syncStatus),
     );
+  }
+
+  String _syncTooltip(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.error:
+        return 'Sync error';
+      case SyncStatus.syncing:
+        return 'Synchronizing notes...';
+      case SyncStatus.synced:
+        return 'Notes are up to date';
+      default:
+        return 'Sync notes with cloud';
+    }
+  }
+
+  Icon _syncIcon(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.notSynced:
+        return const Icon(Icons.cloud_upload_outlined);
+      case SyncStatus.syncing:
+        return const Icon(Icons.sync, color: Colors.blue);
+      case SyncStatus.synced:
+        return const Icon(Icons.cloud_done, color: Colors.green);
+      case SyncStatus.error:
+        return const Icon(Icons.cloud_off, color: Colors.red);
+    }
   }
 
   @override
@@ -267,11 +334,49 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
     return notesAsync.when(
       loading:
-          () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          () => const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          ),
       error:
           (error, stack) => Scaffold(
-            body: Center(child: Text('Error loading notes: $error')),
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(widget.appBarTitle),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Failed to load notes: ${error.toString()}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      // Refresh the data
+                      ref.invalidate(notesProvider(widget.filterCategoryId));
+
+                      // Optional: Force rebuild if needed
+                      setState(() {});
+                    },
+                    tooltip: 'Retry',
+                    iconSize: 40,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Tap to refresh',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ),
       data: (allNotes) {
         final query = searchController.text.toLowerCase();
@@ -296,34 +401,41 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           appBar: _buildAppBar(filtered),
           body: GestureDetector(
             onTap: () => searchFocusNode.unfocus(),
-            child: CustomScrollView(
-              slivers: [
-                if (!_selectionMode) _buildMainAppBar(),
-                if (allNotes.isNotEmpty) ...[
-                  SliverPersistentHeader(
-                    floating: true,
-                    pinned: false,
-                    delegate: SearchHeader(
-                      child: _buildSearchField(),
-                      maxExtent: 60,
-                      minExtent: 60,
-                    ),
-                  ),
-                  _buildPinnedHeader(filtered),
-                  if (pinnedNotes.isNotEmpty) _buildPinnedNotes(pinnedNotes),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(notesProvider(widget.filterCategoryId));
 
-                  if (otherNotes.isNotEmpty) ...[
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: HeaderDelegate('📝 Others'),
-                    ),
+                await Future.delayed(const Duration(milliseconds: 300));
+              },
+              child: CustomScrollView(
+                slivers: [
+                  if (!_selectionMode) _buildMainAppBar(),
+                  if (allNotes.isNotEmpty) ...[
+                    // SliverPersistentHeader(
+                    //   floating: true,
+                    //   pinned: false,
+                    //   delegate: SearchHeader(
+                    //     child: _buildSearchField(),
+                    //     maxExtent: 60,
+                    //     minExtent: 60,
+                    //   ),
+                    // ),
+                    _buildPinnedHeader(filtered),
+                    if (pinnedNotes.isNotEmpty) _buildPinnedNotes(pinnedNotes),
 
-                    _buildNotesList(otherNotes),
+                    if (otherNotes.isNotEmpty) ...[
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: HeaderDelegate('📝 Others'),
+                      ),
+
+                      _buildNotesList(otherNotes),
+                    ],
+                    const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
                   ],
-                  const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+                  if (allNotes.isEmpty) _buildEmptyState(),
                 ],
-                if (allNotes.isEmpty) _buildEmptyState(),
-              ],
+              ),
             ),
           ),
           floatingActionButton: _buildFloatingActionButton(),
@@ -425,24 +537,26 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       centerTitle: true,
       pinned: true,
       elevation: 1,
-      actions: [_buildSyncButton()],
+      // actions: [_buildSyncButton()],
     );
   }
 
   Widget _buildNotesList(List<Note> notes) {
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, idx) => NoteListItem(
-          note: notes[idx],
-          onTap: () => _onTapNote(notes[idx]),
-          onPin: () => _togglePin(notes[idx]),
-          onDelete: () => _deleteNote(notes[idx]),
+      delegate: SliverChildBuilderDelegate((context, idx) {
+        final note = notes[idx];
+        final key = note.id;
+        final isSelected = key != '' && _selectedKeys.contains(key);
+        return NoteListItem(
+          note: note,
+          onTap: () => _onTapNote(note),
+          onPinAsync: () async => await _togglePin(note),
+          onDelete: () => _deleteNote(note),
           selectionMode: _selectionMode,
-          selected: _selectedKeys.contains(notes[idx].key),
-          onLongPress: () => _onLongPressNote(notes[idx]),
-        ),
-        childCount: notes.length,
-      ),
+          selected: isSelected,
+          onLongPress: () => _onLongPressNote(note),
+        );
+      }, childCount: notes.length),
     );
   }
 
@@ -477,7 +591,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           MaterialPageRoute(
             builder:
                 (_) => CreateNoteScreen(
-                  notesBox: box,
+                  //   notesBox: box,
                   categoryId: widget.filterCategoryId,
                 ),
           ),
@@ -491,7 +605,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
   void _openDetail(Note note) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => NoteDetailScreen(noteId: note.id)),
+      MaterialPageRoute(
+        builder:
+            (_) => NoteDetailScreen(
+              noteId: note.id,
+              categoryId: note.categoryId ?? "",
+            ),
+      ),
     );
     // Refresh notes list after returning from detail screen
     ref.invalidate(notesProvider(widget.filterCategoryId));

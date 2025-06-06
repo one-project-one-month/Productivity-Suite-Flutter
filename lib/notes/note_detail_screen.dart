@@ -4,8 +4,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'data/compress_data.dart';
 import 'data/note.dart';
-import 'data/sync/note_sync_provider.dart';
+import 'provider/note_sync_provider.dart';
 import 'widgets/color_picker.dart';
+import 'package:collection/collection.dart';
 
 // Provider for note details with local-first approach
 final noteDetailProvider = FutureProvider.family<Note?, String>((
@@ -15,20 +16,20 @@ final noteDetailProvider = FutureProvider.family<Note?, String>((
   final syncService = ref.read(noteSyncProvider);
 
   // First try to get from local
-  final box = await Hive.openBox<Note>('notesBox');
-  final localNotes = box.values.where((note) => note.id == id);
+  // final box = await Hive.openBox<Note>('notesBox');
+  // final localNote = box.values.firstWhereOrNull((note) => note.id == id);
 
-  if (localNotes.isNotEmpty) {
-    return localNotes.first;
-  }
+  // if (localNote != null) {
+  //   return localNote;
+  // }
 
   // If not found locally, try server
   try {
     final serverNote = await syncService.getNoteById(id);
-    if (serverNote != null) {
-      // Store in local for future access
-      await box.add(serverNote);
-    }
+    // if (serverNote != null) {
+    //   // ✅ Use put instead of add, and optionally clone the object
+    //   await box.put(serverNote.id, serverNote.copyWith());
+    // }
     return serverNote;
   } catch (e) {
     print('Error fetching note from server: $e');
@@ -36,9 +37,15 @@ final noteDetailProvider = FutureProvider.family<Note?, String>((
   }
 });
 
+
 class NoteDetailScreen extends ConsumerStatefulWidget {
   final String noteId;
-  const NoteDetailScreen({super.key, required this.noteId});
+  final String categoryId;
+  const NoteDetailScreen({
+    super.key,
+    required this.noteId,
+    required this.categoryId,
+  });
 
   @override
   ConsumerState<NoteDetailScreen> createState() => _NoteDetailScreenState();
@@ -79,7 +86,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
         note.description,
       );
       selectedColor = Color(note.colorValue ?? Colors.white.value);
-      lastUpdate = note.updatedAt ?? note.createdAt;
+      lastUpdate = note.updatedAt;
       _lastTitle = note.title;
       _lastDescription = note.description;
       currentNote = note;
@@ -88,8 +95,6 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
       descriptionController.addListener(_onDescriptionChanged);
       _isInitialized = true;
     } catch (e) {
-      print('Error initializing controllers: $e');
-      // Reset to safe state
       titleController.text = '';
       descriptionController.text = '';
       selectedColor = Colors.white;
@@ -187,6 +192,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
     setState(() {});
   }
 
+  //TODO: Check for server
   Future<void> _saveNote() async {
     if (currentNote == null) return;
 
@@ -212,28 +218,32 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
       return;
     }
 
-    currentNote!
-      ..title = compressedTitle
-      ..description = compressedDescription
-      ..colorValue = selectedColor.value
-      ..updatedAt = DateTime.now();
+    final updatedNote =
+        currentNote!
+          ..title = compressedTitle
+          ..description = compressedDescription
+          ..colorValue = selectedColor.value
+          ..categoryId = widget.categoryId
+          ..updatedAt = DateTime.now();
 
-    await currentNote!.save();
+    // Update via sync service
+    final syncService = ref.read(noteSyncProvider);
+    await syncService.updateNote(updatedNote);
 
     if (mounted) {
-      ref.invalidate(noteDetailProvider(widget.noteId));
+      ref.invalidate(noteDetailProvider(widget.noteId.toString()));
       Navigator.of(context).pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final noteAsync = ref.watch(noteDetailProvider(widget.noteId));
+    final noteAsync = ref.watch(noteDetailProvider(widget.noteId.toString()));
 
     return noteAsync.when(
       loading:
           () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+              const Scaffold(body: Center(child: CircularProgressIndicator.adaptive())),
       error:
           (error, stack) => Scaffold(
             body: Center(
@@ -246,7 +256,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      ref.invalidate(noteDetailProvider(widget.noteId));
+                      ref.invalidate(noteDetailProvider(widget.noteId.toString()));
                     },
                     child: const Text('Retry'),
                   ),
@@ -275,83 +285,85 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
         final totalLength =
             titleController.text.length + descriptionController.text.length;
 
-        return SafeArea(
-          child: Scaffold(
-            appBar: AppBar(
-              backgroundColor: selectedColor.withOpacity(0.25),
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.undo),
-                  tooltip: 'Undo',
-                  onPressed: undoStack.isNotEmpty ? _undo : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.redo),
-                  tooltip: 'Redo',
-                  onPressed: redoStack.isNotEmpty ? _redo : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.check),
-                  tooltip: 'Save Note',
-                  onPressed: isSaveEnabled ? _saveNote : null,
-                ),
-              ],
-            ),
-            body: Container(
-              color: selectedColor.withOpacity(0.25),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      maxLines: 1,
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: selectedColor.withOpacity(0.25),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.undo),
+                tooltip: 'Undo',
+                onPressed: undoStack.isNotEmpty ? _undo : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.redo),
+                tooltip: 'Redo',
+                onPressed: redoStack.isNotEmpty ? _redo : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.check),
+                tooltip: 'Save Note',
+                onPressed: isSaveEnabled ? _saveNote : null,
+              ),
+            ],
+          ),
+          body: Container(
+            color: selectedColor.withOpacity(0.25),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    maxLines: 1,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: 'Title...',
+                      hintStyle: TextStyle(
+                        color: Color.fromARGB(255, 107, 107, 107),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        "$formatDate | $totalLength characters",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color.fromARGB(255, 72, 72, 72),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Divider(color: Color.fromARGB(255, 72, 72, 72)),
+
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: descriptionController,
+                      maxLines: null,
+                      expands: true,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Title...',
+                        hintText: 'Start typing...',
                         hintStyle: TextStyle(
                           color: Color.fromARGB(255, 107, 107, 107),
                         ),
                       ),
                     ),
-                    Row(
-                      children: [
-                        Text(
-                          "$formatDate | $totalLength characters",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color.fromARGB(255, 72, 72, 72),
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [Expanded(child: _buildColorPicker())],
                     ),
-                    const SizedBox(height: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: descriptionController,
-                        maxLines: null,
-                        expands: true,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Start typing...',
-                          hintStyle: TextStyle(
-                            color: Color.fromARGB(255, 107, 107, 107),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Container(
-                      height: 50,
-                      alignment: Alignment.bottomCenter,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [Expanded(child: _buildColorPicker())],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 10),
+                ],
               ),
             ),
           ),

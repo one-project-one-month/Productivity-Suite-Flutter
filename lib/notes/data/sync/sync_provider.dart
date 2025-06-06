@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../note.dart';
-import '../note_repository.dart';
+import '../../repository/note_repository.dart';
 import 'sync_result.dart';
 import 'sync_status.dart';
 import '../../widgets/error_dialog.dart';
@@ -43,9 +43,40 @@ final syncNotesProvider =
           ref.read(syncErrorProvider.notifier).state = e.toString();
           if (context.mounted) {
             showErrorDialog(context, e.toString());
-  
           }
           return SyncResult(success: false, error: e.toString());
         }
       };
     });
+
+
+
+// Sync state notifier per category
+// sync_provider.dart
+
+// final syncStateProvider = StateNotifierProvider.family<SyncNotifier, SyncState, String>(
+//   (ref, categoryId) => SyncNotifier(ref, categoryId),
+// );
+
+// class SyncNotifier extends StateNotifier<SyncState> {
+//   final Ref ref;
+//   final String categoryId;
+
+//   SyncNotifier(this.ref, this.categoryId) : super(const SyncState());
+
+//   Future<void> syncNotes() async {
+//     if (state.status == SyncStatus.syncing) return;
+    
+//     state = state.copyWith(status: SyncStatus.syncing, error: null);
+    
+//     try {
+//       // Sync implementation
+//       state = state.copyWith(status: SyncStatus.synced);
+//     } catch (e) {
+//       state = state.copyWith(
+//         status: SyncStatus.error,
+//         error: e.toString(),
+//       );
+//     }
+//   }
+// }

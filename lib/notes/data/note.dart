@@ -53,7 +53,7 @@ class Note extends HiveObject {
   DateTime updatedAt;
 
   @HiveField(9)
-  String? categoryId;  // Reference to Category
+  String? categoryId; // Reference to Category
 
   // Improved color handling
   Color get color => colorValue != null ? Color(colorValue!) : Colors.blue;
@@ -70,8 +70,8 @@ class Note extends HiveObject {
     this.isPinned = false,
     DateTime? updatedAt,
     this.categoryId,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   // Factory constructor with better defaults
   factory Note.create({
@@ -120,7 +120,8 @@ class Note extends HiveObject {
   }
 
   // Helper methods
-  bool get hasAttachment => attachmentPath != null && attachmentPath!.isNotEmpty;
+  bool get hasAttachment =>
+      attachmentPath != null && attachmentPath!.isNotEmpty;
   bool get isTextNote => type == NoteType.text;
   void togglePin() => isPinned = !isPinned;
 }
@@ -144,7 +145,7 @@ class Category extends HiveObject {
   DateTime updatedAt;
 
   @HiveField(5)
-  String? iconCodePoint;  // For Material icons
+  String? iconCodePoint; // For Material icons
 
   Category({
     String? id,
@@ -153,18 +154,19 @@ class Category extends HiveObject {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.iconCodePoint,
-  })  : id = id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id  ?? DateTime.now().millisecondsSinceEpoch.toString(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   // Color handling
   Color get color => Color(colorValue);
   set color(Color value) => colorValue = value.value;
 
   // Icon handling
-  IconData? get icon => iconCodePoint != null 
-      ? IconData(int.parse(iconCodePoint!), fontFamily: 'MaterialIcons') 
-      : null;
+  IconData? get icon =>
+      iconCodePoint != null
+          ? IconData(int.parse(iconCodePoint!), fontFamily: 'MaterialIcons')
+          : null;
 
   // Factory constructor
   factory Category.create({
@@ -180,11 +182,7 @@ class Category extends HiveObject {
   }
 
   // Copy with
-  Category copyWith({
-    String? name,
-    int? colorValue,
-    String? iconCodePoint,
-  }) {
+  Category copyWith({String? name, int? colorValue, String? iconCodePoint}) {
     return Category(
       id: id,
       name: name ?? this.name,

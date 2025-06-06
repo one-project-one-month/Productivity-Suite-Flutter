@@ -27,7 +27,7 @@ Future<void> noteTakingSetup() async {
   Hive.registerAdapter(NoteTypeAdapter());
   Hive.registerAdapter(NoteAdapter());
   Hive.registerAdapter(CategoryAdapter());
-  await Hive.openBox<Category>('categoriesBox');
+//await Hive.openBox<Category>('categoriesBox');
   await Hive.openBox<Note>('notesBox');
 }
 

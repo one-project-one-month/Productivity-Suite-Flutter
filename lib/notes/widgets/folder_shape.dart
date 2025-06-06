@@ -8,6 +8,7 @@ class FolderShapeWithBorder extends StatelessWidget {
   final Color borderColor;
   final String iconData;
   final String catID;
+  final int countNotesInCategory;
 
   const FolderShapeWithBorder({
     super.key,
@@ -16,15 +17,16 @@ class FolderShapeWithBorder extends StatelessWidget {
     this.borderColor = Colors.black,
     required this.iconData,
     required this.catID,
+    this.countNotesInCategory = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    int countNotesInCategory(String categoryId) {
-      return Hive.box<Note>(
-        'notesBox',
-      ).values.where((note) => note.categoryId == categoryId).length;
-    }
+    // int countNotesInCategory(String categoryId) {
+    //   return Hive.box<Note>(
+    //     'notesBox',
+    //   ).values.where((note) => note.categoryId == categoryId).length;
+    // }
 
     final IconData resolvedIcon = getIconFromLabel(iconData);
 
@@ -54,7 +56,7 @@ class FolderShapeWithBorder extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Notes: ${countNotesInCategory(catID)}',
+                    'Notes: $countNotesInCategory',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],

@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:productivity_suite_flutter/notes/data/compress_data.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
+import 'package:productivity_suite_flutter/notes/provider/note_sync_provider.dart';
+import 'package:productivity_suite_flutter/notes/repository/note_repository.dart';
 import 'package:productivity_suite_flutter/notes/widgets/color_picker.dart';
 
-class CreateNoteScreen extends StatefulWidget {
-  final Box<Note> notesBox;
+class CreateNoteScreen extends ConsumerStatefulWidget {
+  //final Box<Note> notesBox;
   final String? categoryId;
 
-  const CreateNoteScreen({super.key, required this.notesBox, this.categoryId});
+  const CreateNoteScreen({super.key, //required this.notesBox, 
+  this.categoryId});
 
   @override
-  State<CreateNoteScreen> createState() => _CreateNoteScreenState();
+  ConsumerState<CreateNoteScreen> createState() => _CreateNoteScreenState();
 }
 
-class _CreateNoteScreenState extends State<CreateNoteScreen> {
+class _CreateNoteScreenState extends ConsumerState<CreateNoteScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final FocusNode titleFocusNode = FocusNode();
@@ -175,7 +179,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
     );
   }
 
-  void _saveNote() {
+  void _saveNote() async {
     final titleText = titleController.text.trim();
     final descriptionText = descriptionController.text.trim();
 
@@ -194,7 +198,7 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
             : 'CMP:${CompressString.compressString(descriptionText)}';
 
     final note = Note(
-      id: DateTime.now().toIso8601String(),
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: compressedTitle,
       categoryId: widget.categoryId,
       description: compressedDescription,
@@ -204,8 +208,9 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
       isPinned: false,
       colorValue: selectedColor.value,
     );
-
-    widget.notesBox.add(note);
+    final syncService = ref.watch(noteRepositoryProvider);
+    await syncService.bulkUploadNotes([note], widget.categoryId ?? '');
+    // widget.notesBox.add(note);
     Navigator.of(context).pop();
   }
 
@@ -214,131 +219,87 @@ class _CreateNoteScreenState extends State<CreateNoteScreen> {
     var formatDate = DateFormat('MMMM d, h:mm a').format(createDate);
     final totalLength =
         titleController.text.length + descriptionController.text.length;
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: selectedColor.withOpacity(0.25),
-          centerTitle: true,
-          leading: IconButton(
-            icon: Icon(_isEditing ? Icons.check : Icons.arrow_back),
-            onPressed:
-                _isEditing ? _saveNote : () => Navigator.of(context).pop(),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.undo),
-              tooltip: 'Undo',
-              onPressed: undoStack.isNotEmpty ? _undo : null,
-            ),
-            IconButton(
-              icon: const Icon(Icons.redo),
-              tooltip: 'Redo',
-              onPressed: redoStack.isNotEmpty ? _redo : null,
-            ),
-          ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: selectedColor.withOpacity(0.25),
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(_isEditing ? Icons.check : Icons.arrow_back),
+          onPressed: _isEditing ? _saveNote : () => Navigator.of(context).pop(),
         ),
-        body: Container(
-          color: selectedColor.withOpacity(0.25),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: titleController,
-                  focusNode: titleFocusNode,
-                  maxLines: 1,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.undo),
+            tooltip: 'Undo',
+            onPressed: undoStack.isNotEmpty ? _undo : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.redo),
+            tooltip: 'Redo',
+            onPressed: redoStack.isNotEmpty ? _redo : null,
+          ),
+        ],
+      ),
+      body: Container(
+        color: selectedColor.withOpacity(0.25),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: titleController,
+                focusNode: titleFocusNode,
+                maxLines: 1,
+                decoration: InputDecoration(
+                  border: InputBorder.none,
 
-                    hintText: 'Title...',
+                  hintText: 'Title...',
+                  hintStyle: TextStyle(
+                    color: const Color.fromARGB(255, 107, 107, 107),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    "$formatDate | $totalLength characters",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color.fromARGB(255, 72, 72, 72),
+                    ),
+                  ),
+                ],
+              ),
+              Divider(color: Color.fromARGB(255, 72, 72, 72)),
+
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: descriptionController,
+                  focusNode: descriptionFocusNode,
+                  maxLines: 500,
+                  decoration: InputDecoration(
+                    hintText: 'Start typing...',
                     hintStyle: TextStyle(
                       color: const Color.fromARGB(255, 107, 107, 107),
                     ),
+                    border: InputBorder.none,
                   ),
                 ),
-                Row(
-                  children: [
-                    Text(
-                      "$formatDate | $totalLength characters",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color.fromARGB(255, 72, 72, 72),
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [Expanded(child: _buildColorPicker())],
                 ),
-                Divider(color: Color.fromARGB(255, 72, 72, 72)),
+              ),
 
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: descriptionController,
-                    focusNode: descriptionFocusNode,
-                    maxLines: 500,
-                    decoration: InputDecoration(
-                      hintText: 'Start typing...',
-                      hintStyle: TextStyle(
-                        color: const Color.fromARGB(255, 107, 107, 107),
-                      ),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [Expanded(child: _buildColorPicker())],
-                  ),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      "$formatDate | $totalLength characters",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color.fromARGB(255, 72, 72, 72),
-                      ),
-                    ),
-                  ],
-                ),
-                Divider(color: Color.fromARGB(255, 72, 72, 72)),
-
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: descriptionController,
-                    focusNode: descriptionFocusNode,
-                    maxLines: 500,
-                    decoration: InputDecoration(
-                      hintText: 'Start typing...',
-                      hintStyle: TextStyle(
-                        color: const Color.fromARGB(255, 107, 107, 107),
-                      ),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Color Tag:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      _buildColorPicker(),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
+              const SizedBox(height: 10),
+            ],
           ),
         ),
       ),
