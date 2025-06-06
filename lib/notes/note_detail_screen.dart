@@ -107,7 +107,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
     _trackChange('title', _lastTitle, current);
     _lastTitle = current;
     setState(() {});
-  }
+  }   
 
   void _onDescriptionChanged() {
     if (_isPerformingUndoRedo) return;
