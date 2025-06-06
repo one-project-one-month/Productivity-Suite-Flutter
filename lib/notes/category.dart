@@ -20,7 +20,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     super.initState();
   }
 
-  void _deleteCategory(Category category) async {
+  void _delete(Category category) async {
     final confirm = await showDialog<bool>(
       context: context, // outer screen context, for `showDialog`
       builder:
@@ -66,7 +66,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
-  void _showEditCategoryDialog(Category category) {
+  void _showeditDialog(Category category) {
     String categoryName = category.name;
     Color selectedColor = Color(category.colorValue);
 
@@ -251,10 +251,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => CategoryNotesScreen(category: cat),
+                                    builder:
+                                        (_) =>
+                                            CategoryNotesScreen(category: cat),
                                   ),
                                 );
-                                
+
                                 if (mounted) {
                                   setState(() {});
                                 }
@@ -278,10 +280,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
                               onSelected: (value) {
                                 switch (value) {
                                   case 'edit':
-                                    _showEditCategoryDialog(cat);
+                                    _showeditDialog(cat);
                                     break;
                                   case 'delete':
-                                    _deleteCategory(cat);
+                                    _delete(cat);
                                     break;
                                 }
                               },

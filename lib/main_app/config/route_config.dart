@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:productivity_suite_flutter/budgets/budgets.dart';
+import 'package:productivity_suite_flutter/budgets/pages/budgets_page.dart';
 import 'package:productivity_suite_flutter/notes/category.dart';
 import '../../auth/auth_screen.dart';
 import '../../auth/register_screen.dart';
@@ -8,10 +8,10 @@ import '../main_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
 final GoRouter routes = GoRouter(
-  initialLocation: '/login',
+  // initialLocation: '/login',
   routes: [
-    GoRoute(path: '/login', builder: (context, state) => AuthScreen()),
-    GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
+    // GoRoute(path: '/login', builder: (context, state) => AuthScreen()),
+    // GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return MainScreen(shell: shell);

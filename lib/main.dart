@@ -1,12 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:productivity_suite_flutter/budgets/providers/category_provider.dart';
+import 'package:productivity_suite_flutter/budgets/providers/transcation_provider.dart';
+import 'package:provider/provider.dart' as provider;
 import 'main_app/config/route_config.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
-  runApp(ProviderScope(child: const MyApp()));
+  runApp(
+    ProviderScope(
+      child: provider.MultiProvider(
+        providers: [
+          provider.ChangeNotifierProvider(
+            create: (_) => CategoryProvider()..getCategories(),
+          ),
+          provider.ChangeNotifierProvider(
+            create: (_) => TranscationProvider()..getTranscations(),
+          ),
+        ],
+        child: MyApp(),
+      ),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
