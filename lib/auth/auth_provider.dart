@@ -205,6 +205,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final responseData = json.decode(response.body);
         final token = responseData['data']?['accessToken'] as String?;
         if (token != null) {
+          print(token);
           state = state.copyWith(
             isAuthenticated: true,
 

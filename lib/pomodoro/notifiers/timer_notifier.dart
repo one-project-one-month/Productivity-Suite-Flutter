@@ -5,12 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pomodoro_state_model.dart';
 import '../utils/shared_prefs_provider.dart';
 
-class PomodoroNotifier extends Notifier<PomodoroState> {
+/*class PomodoroNotifier extends Notifier<PomodoroStateModel> {
   Timer? _timer;
   late final SharedPreferences prefs;
 
   @override
-  PomodoroState build() {
+  PomodoroStateModel build() {
     prefs = ref.read(sharedPrefsProvider);
 
     final savedLongBreak = prefs.getInt('longBreakDuration') ?? 1500;
@@ -19,7 +19,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     final completedWorkSessions = prefs.getInt('completedWorkSessions') ?? 0;
     final savedMode = PomodoroMode.values[savedModeIndex];
 
-    return PomodoroState(
+    return PomodoroStateModel(
       remainingSeconds: _getDurationForMode(
         savedMode,
         longBreak: savedLongBreak,
@@ -97,7 +97,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     }
   }
 
-  /*void _incrementSession() {
+  */ /*void _incrementSession() {
     const int maxSessions = 4;
     int newCount;
     if (state.completedSessions >= maxSessions) {
@@ -117,7 +117,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     } else {
       changeMode(PomodoroMode.work);
     }
-  }*/
+  }*/ /*
 
   void changeMode(PomodoroMode mode) {
     final seconds = _getDurationForMode(mode);
@@ -139,11 +139,11 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   int _getDurationForMode(PomodoroMode mode, {int? longBreak}) {
     switch (mode) {
       case PomodoroMode.work:
-        return 10; // 25 minutes(1500)
+        return 5; // 25 minutes(1500)
       case PomodoroMode.shortBreak:
-        return 5; // 5 minutes(300)
+        return 3; // 5 minutes(300)
       case PomodoroMode.longBreak:
         return longBreak ?? state.longBreakDuration;
     }
   }
-}
+}*/

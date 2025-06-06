@@ -1,18 +1,17 @@
 import 'package:go_router/go_router.dart';
+import 'package:productivity_suite_flutter/budgets/pages/budgets_page.dart';
 import 'package:productivity_suite_flutter/notes/category.dart';
 import '../../auth/auth_screen.dart';
 import '../../auth/register_screen.dart';
 import '../../pomodoro/pomodoro.dart';
 import '../main_screen.dart';
-import '../screens/views/budget_tracker_screen.dart';
-import '../screens/views/main_pomodoro_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
 final GoRouter routes = GoRouter(
-  initialLocation: '/login',
+  // initialLocation: '/login',
   routes: [
-    GoRoute(path: '/login', builder: (context, state) => AuthScreen()),
-    GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
+    // GoRoute(path: '/login', builder: (context, state) => AuthScreen()),
+    // GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) {
         return MainScreen(shell: shell);
@@ -68,7 +67,7 @@ final GoRouter routes = GoRouter(
               name: 'budget_tracker',
               path: '/budget_tracker',
               builder: (context, state) {
-                return BudgetTrackerScreen();
+                return BudgetPage();
               },
             ),
           ],
