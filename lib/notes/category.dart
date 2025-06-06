@@ -1,13 +1,25 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
 import 'package:productivity_suite_flutter/notes/notes_screen.dart';
 import 'package:productivity_suite_flutter/notes/provider/cat_sync_provider.dart';
+import 'package:productivity_suite_flutter/notes/provider/note_sync_provider.dart';
+import 'package:productivity_suite_flutter/notes/repository/category_repository.dart';
 import 'package:productivity_suite_flutter/notes/widgets/color_picker.dart';
 import 'package:productivity_suite_flutter/notes/widgets/folder_shape.dart';
 
+final categoryListProvider = FutureProvider<List<Category>>((ref) async {
+  final syncService = ref.read(categorySyncProvider);
+  return await syncService.getCategories();
+});
+final noteListProvider = FutureProvider.family<List<Note>, String?>((
+  ref,
+  categoryId,
+) async {
+  final syncService = ref.watch(noteSyncProvider);
+  return syncService.getNotesByCategory(categoryId);
+});
 
 class CategoryScreen extends ConsumerStatefulWidget {
   const CategoryScreen({super.key});
@@ -18,7 +30,8 @@ class CategoryScreen extends ConsumerStatefulWidget {
 
 class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   late final CategorySyncService _syncService;
-  final Box<Category> _categoriesBox = Hive.box<Category>('categoriesBox');
+  bool _isloading = false;
+  //final Box<Category> _categoriesBox = Hive.box<Category>('categoriesBox');
 
   @override
   void initState() {
@@ -44,6 +57,7 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
   }
 
   Future<void> _deleteCategory(Category category) async {
+    setState(() => _isloading = true);
     final confirm = await showDialog<bool>(
       context: context,
       builder:
@@ -69,14 +83,15 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
     if (confirm == true && mounted) {
       try {
         await _syncService.deleteCategory(category.id);
-        _syncCategories();
+        ref.invalidate(categoryListProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Category "${category.name}" deleted')),
         );
       } catch (e) {
-        _showError('Delete failed: ${e.toString()}');
+        _showError('Delete failed: [31m${e.toString()}[0m');
       }
     }
+    if (mounted) setState(() => _isloading = false); // Hide loading
   }
 
   void _showCategoryDialog({Category? category}) {
@@ -84,76 +99,96 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
     Color selectedColor =
         category != null ? Color(category.colorValue) : const Color(0xff0045F3);
     final nameController = TextEditingController(text: categoryName);
+    bool isLoading = false;
 
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: Text(
-              category == null ? 'Create New Category' : 'Edit Category',
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category Name',
-                    border: OutlineInputBorder(),
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: Text(
+                    category == null ? 'Create New Category' : 'Edit Category',
                   ),
-                  onChanged: (value) => categoryName = value,
-                ),
-                const SizedBox(height: 16),
-                ColorPicker(
-                  initialColor: selectedColor,
-                  onColorChanged: (color) => selectedColor = color,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Color(0xff0045F3)),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Category Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) => categoryName = value,
+                      ),
+                      const SizedBox(height: 16),
+                      ColorPicker(
+                        initialColor: selectedColor,
+                        onColorChanged: (color) => selectedColor = color,
+                      ),
+                    ],
                   ),
-                ),
-                onPressed: () async {
-                  if (categoryName.isEmpty) return;
+                  actions: [
+                    TextButton(
+                      onPressed:
+                          isLoading ? null : () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Color(0xff0045F3)),
+                      ),
+                    ),
+                    isLoading
+                        ? const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator.adaptive(
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        )
+                        : ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                          ),
+                          onPressed: () async {
+                            if (categoryName.isEmpty) return;
+                            setState(() => isLoading = true);
+                            if (!mounted) return;
+                            try {
+                              final newCat = Category(
+                                id: category?.id,
+                                name: categoryName,
+                                colorValue: selectedColor.value,
+                              );
 
-                  if (!mounted) return;
-                  Navigator.pop(
-                    context,
-                  ); // Close immediately (loading indicator would go here)
+                              if (category == null) {
+                                await _syncService.createCategory(newCat);
+                              } else {
+                                await _syncService.updateCategory(newCat);
+                              }
 
-                  try {
-                    final newCat = Category(
-                      id: category?.id,
-                      name: categoryName,
-                      colorValue: selectedColor.value,
-                    );
-                    category == null
-                        ? await _syncService.createCategory(newCat)
-                        : await _syncService.updateCategory(newCat);
-                  } catch (e) {
-                    _showError('Failed: ${e.toString()}');
-                  }
-                  if (mounted) {
-                    _syncCategories(); // 🔁 Refresh category list after success
-                  }
-                },
-                child: Text(
-                  category == null ? 'Create' : 'Save',
-                  style: const TextStyle(color: Color(0xff0045F3)),
+                              ref.invalidate(
+                                categoryListProvider,
+                              ); // 🔁 Re-fetch categories
+                              if (mounted) Navigator.pop(context);
+                            } catch (e) {
+                              if (mounted)
+                                _showError('Failed: [31m${e.toString()}[0m');
+                            } finally {
+                              if (mounted) setState(() => isLoading = false);
+                            }
+                          },
+                          child: Text(
+                            category == null ? 'Create' : 'Save',
+                            style: const TextStyle(color: Color(0xff0045F3)),
+                          ),
+                        ),
+                  ],
                 ),
-              ),
-            ],
           ),
     );
   }
@@ -167,111 +202,280 @@ class _CategoryScreenState extends ConsumerState<CategoryScreen> {
         backgroundColor: Colors.white,
         centerTitle: true,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Stack(
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.0),
-            child: Text(
-              "Note Categories",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-            ),
-          ),
-          Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: _categoriesBox.listenable(),
-              builder: (ctx, Box<Category> box, _) {
-                final categories = box.values.toList();
-                if (categories.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No categories yet.\nTap + to create your first folder!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.0),
+                child: Text(
+                  "Note Categories",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+                ),
+              ),
+              // Expanded(
+              //   child: ValueListenableBuilder(
+              //   //  valueListenable:// _categoriesBox.listenable(),
+              //     builder: (ctx, Box<Category> box, _) {
+              //       final categories = box.values.toList();
+              //       if (categories.isEmpty) {
+              //         return const Center(
+              //           child: Text(
+              //             'No categories yet.\nTap + to create your first folder!',
+              //             textAlign: TextAlign.center,
+              //             style: TextStyle(color: Colors.grey),
+              //           ),
+              //         );
+              //       }
 
-                return GridView.builder(
-                  padding: const EdgeInsets.all(10),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 3 / 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: categories.length,
-                  itemBuilder: (ctx, idx) {
-                    final cat = categories[idx];
-                    return Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) =>
-                                            CategoryNotesScreen(category: cat),
-                                  ),
-                                );
-                                if (mounted) _syncCategories();
-                              },
-                              child: FolderShapeWithBorder(
-                                label: cat.name,
-                                catID: cat.id,
-                                iconData: cat.name,
-                                color: Color(cat.colorValue),
-                                borderColor: Color(cat.colorValue),
+              //       return GridView.builder(
+              //         padding: const EdgeInsets.all(10),
+              //         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              //           crossAxisCount: 2,
+              //           childAspectRatio: 3 / 2,
+              //           crossAxisSpacing: 10,
+              //           mainAxisSpacing: 10,
+              //         ),
+              //         itemCount: categories.length,
+              //         itemBuilder: (ctx, idx) {
+              //           final cat = categories[idx];
+              //           return Card(
+              //             elevation: 2,
+              //             shape: RoundedRectangleBorder(
+              //               borderRadius: BorderRadius.circular(12),
+              //             ),
+              //             child: Stack(
+              //               children: [
+              //                 Positioned.fill(
+              //                   child: InkWell(
+              //                     borderRadius: BorderRadius.circular(12),
+              //                     onTap: () async {
+              //                       await Navigator.push(
+              //                         context,
+              //                         MaterialPageRoute(
+              //                           builder:
+              //                               (_) =>
+              //                                   CategoryNotesScreen(category: cat),
+              //                         ),
+              //                       );
+              //                       if (mounted) _syncCategories();
+              //                     },
+              //                     child: FolderShapeWithBorder(
+              //                       label: cat.name,
+              //                       catID: cat.id,
+              //                       iconData: cat.name,
+              //                       color: Color(cat.colorValue),
+              //                       borderColor: Color(cat.colorValue),
+              //                     ),
+              //                   ),
+              //                 ),
+              //                 Positioned(
+              //                   top: 24,
+              //                   right: 0,
+              //                   child: PopupMenuButton<String>(
+              //                     icon: const Icon(
+              //                       Icons.more_vert,
+              //                       color: Colors.white,
+              //                     ),
+              //                     onSelected: (value) {
+              //                       if (value == 'edit') {
+              //                         _showCategoryDialog(category: cat);
+              //                       } else if (value == 'delete') {
+              //                         _deleteCategory(cat);
+              //                       }
+              //                     },
+              //                     itemBuilder:
+              //                         (_) => [
+              //                           const PopupMenuItem(
+              //                             value: 'edit',
+              //                             child: Text('Edit'),
+              //                           ),
+              //                           const PopupMenuItem(
+              //                             value: 'delete',
+              //                             child: Text(
+              //                               'Delete',
+              //                               style: TextStyle(color: Colors.red),
+              //                             ),
+              //                           ),
+              //                         ],
+              //                   ),
+              //                 ),
+              //               ],
+              //             ),
+              //           );
+              //         },
+              //       );
+              //     },
+              //   ),
+              // ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(categoryListProvider);
+
+                    await ref.read(categoryListProvider.future);
+                  },
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final asyncCategories = ref.watch(categoryListProvider);
+
+                      return asyncCategories.when(
+                        data: (categories) {
+                          if (categories.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'No categories yet.\nTap + to create your first folder!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey),
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 24,
-                            right: 0,
-                            child: PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Colors.white,
-                              ),
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  _showCategoryDialog(category: cat);
-                                } else if (value == 'delete') {
-                                  _deleteCategory(cat);
-                                }
-                              },
-                              itemBuilder:
-                                  (_) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Edit'),
+                            );
+                          }
+
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(10),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 3 / 2,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                            itemCount: categories.length,
+                            itemBuilder: (ctx, idx) {
+                              final cat = categories[idx];
+
+                              final notesAsync = ref.watch(
+                                noteListProvider(cat.id),
+                              );
+
+                              return notesAsync.when(
+                                data: (notes) {
+                                  final noteCount = notes.length;
+                                  return Card(
+                                    elevation: 2,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.red),
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            onTap: () async {
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (_) =>
+                                                          CategoryNotesScreen(
+                                                            category: cat,
+                                                          ),
+                                                ),
+                                              );
+                                              if (mounted) {
+                                                ref.invalidate(
+                                                  noteListProvider(cat.id),
+                                                );
+                                                ref.invalidate(
+                                                  categoryListProvider,
+                                                );
+                                              }
+                                            },
+                                            child: FolderShapeWithBorder(
+                                              label: cat.name,
+                                              catID: cat.id,
+                                              countNotesInCategory: noteCount,
+                                              iconData: cat.name,
+                                              color: Color(cat.colorValue),
+                                              borderColor: Color(
+                                                cat.colorValue,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 24,
+                                          right: 0,
+                                          child: PopupMenuButton<String>(
+                                            icon: const Icon(
+                                              Icons.more_vert,
+                                              color: Colors.white,
+                                            ),
+                                            onSelected: (value) {
+                                              if (value == 'edit') {
+                                                _showCategoryDialog(
+                                                  category: cat,
+                                                );
+                                              } else if (value == 'delete') {
+                                                _deleteCategory(cat);
+                                              }
+                                            },
+                                            itemBuilder:
+                                                (_) => const [
+                                                  PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: Text('Edit'),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: Text(
+                                                      'Delete',
+                                                      style: TextStyle(
+                                                        color: Colors.red,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                loading:
+                                    () => Card(
+                                      elevation: 2,
+                                      color: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Center(
+                                        child:
+                                            CircularProgressIndicator.adaptive(),
                                       ),
                                     ),
-                                  ],
+                                error:
+                                    (error, _) => Card(
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Center(
+                                        child: Text('Error: $error'),
+                                      ),
+                                    ),
+                              );
+                            },
+                          );
+                        },
+                        loading:
+                            () => const Center(
+                              child: CircularProgressIndicator.adaptive(),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                        error:
+                            (err, stack) => Center(child: Text('Error: $err')),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (_isloading)
+            const Center(child: CircularProgressIndicator.adaptive()),
         ],
       ),
       floatingActionButton: FloatingActionButton(

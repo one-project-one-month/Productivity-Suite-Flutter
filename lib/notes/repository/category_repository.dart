@@ -28,10 +28,10 @@ class CategoryRepository {
        _ref = ref;
 
   Map<String, String> get _headers {
-    final token =
-        _ref.read(authProvider).token;
-    if (token == null)
+    final token = _ref.read(authProvider).token;
+    if (token == null) {
       throw UnauthorizedException('Authentication token not found');
+    }
     return {
       'Content-Type': 'application/json',
       ''
@@ -40,11 +40,10 @@ class CategoryRepository {
     };
   }
 
-  Future<List<Category>> getAllCategories() async {
-    final response = await _client.get(
-      Uri.parse('$baseUrl/categories'),
-      headers: _headers,
-    );
+  Future<List<Category>> getAllCategories({int? query}) async {
+    final uri = Uri.parse('$baseUrl/categories?type=4');
+
+    final response = await _client.get(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       final decoded = json.decode(response.body);
@@ -103,8 +102,6 @@ class CategoryRepository {
 
   Category _categoryFromJson(Map<String, dynamic> json) {
     String desc = json['description'].toString();
-
-    
     desc = desc.startsWith('#') ? desc.substring(1) : desc;
 
     return Category(
