@@ -383,7 +383,28 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     _saveToPrefs();
   }
 
-  // --- WebSocket Control Methods ---
+  /// Reconnect WebSocket with new auth token after login
+  Future<void> reconnectAfterLogin() async {
+    print('Reconnecting Pomodoro WebSocket after login...');
+
+    // Disconnect first if connected
+    if (state.connectionState == PomodoroConnectionState.connected) {
+      _server.disconnect();
+    }
+
+    // Wait a bit for cleanup
+    await Future.delayed(Duration(milliseconds: 500));
+
+    // Reconnect with new token
+    await _server.reconnectWithNewToken();
+
+    state = state.copyWith(
+      connectionState: PomodoroConnectionState.connecting,
+      errorMessage: null,
+    );
+  }
+
+// Also update the existing connect method to handle token refresh
   Future<void> connect() async {
     if (state.connectionState == PomodoroConnectionState.connecting) return;
 
