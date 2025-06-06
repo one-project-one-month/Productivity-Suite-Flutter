@@ -15,7 +15,7 @@ import '../data/sync/sync_result.dart';
 final noteRepositoryProvider = Provider<NoteRepository>((ref) {
   return NoteRepository(
     baseUrl:
-        'https://productivity-suite-java.onrender.com/productivity-suite/api/v1',
+    'https://productivity-suite-java.onrender.com/productivity-suite/api/v1',
     ref: ref,
   );
 });
@@ -27,12 +27,11 @@ class NoteRepository {
   final Ref _ref;
 
   NoteRepository({required this.baseUrl, required Ref ref, http.Client? client})
-    : _client = client ?? http.Client(),
-      _ref = ref;
+      : _client = client ?? http.Client(),
+        _ref = ref;
 
   Map<String, String> get _headers {
-    final token =
-        _ref.read(authProvider).token;
+    final token = _ref.read(authProvider).token;
     if (token == null) {
       throw UnauthorizedException('Authentication token not found');
     }
@@ -43,8 +42,7 @@ class NoteRepository {
   }
 
   Map<String, String> get _pinHeader {
-    final token =
-        "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6NSwiZW1haWwiOiJ0ZXN0QGdtYWlsLmNvbSIsInN1YiI6InRlc3RAZ21haWwuY29tIiwiaXNzIjoiMVAxTSIsImlhdCI6MTc0OTExMjYzNywiZXhwIjoxNzQ5MTIzNDM3fQ.l9PesiqltmF6fxkP_YN3tYO7N2FS9F3fls-Wsc9O9Rw";
+    final token = _ref.read(authProvider).token;
     if (token == null) {
       throw UnauthorizedException('Authentication token not found');
     }
@@ -140,9 +138,9 @@ class NoteRepository {
 
       // Convert colorValue to hex string with #
       final hexColor =
-          note.colorValue != null
-              ? '#${note.colorValue!.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}'
-              : '#FFFFFF';
+      note.colorValue != null
+          ? '#${note.colorValue!.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}'
+          : '#FFFFFF';
 
       final response = await _client.put(
         Uri.parse('$baseUrl/notes/${note.id}'),
@@ -189,30 +187,30 @@ class NoteRepository {
 
   //Upload cloud server
   Future<SyncResult> bulkUploadNotes(
-    List<Note> notes,
-    String categoryId,
-  ) async {
+      List<Note> notes,
+      String categoryId,
+      ) async {
     return _handleRequest(() async {
       final noteList =
-          notes.map((note) {
-            final decompressedTitle = CompressString.decompressString(
-              note.title,
-            );
-            var decompressedBody = CompressString.decompressString(
-              note.description,
-            );
-            if (decompressedBody.trim().isEmpty) {
-              decompressedBody = ' ';
-            }
+      notes.map((note) {
+        final decompressedTitle = CompressString.decompressString(
+          note.title,
+        );
+        var decompressedBody = CompressString.decompressString(
+          note.description,
+        );
+        if (decompressedBody.trim().isEmpty) {
+          decompressedBody = ' ';
+        }
 
-            return {
-              'title': decompressedTitle,
-              'body': decompressedBody,
-              'categoryId': int.tryParse(categoryId) ?? 0,
-              'color':
-                  '#${note.color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
-            };
-          }).toList();
+        return {
+          'title': decompressedTitle,
+          'body': decompressedBody,
+          'categoryId': int.tryParse(categoryId) ?? 0,
+          'color':
+          '#${note.color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+        };
+      }).toList();
 
       final response = await _client.post(
         Uri.parse('$baseUrl/notes/flutter'),

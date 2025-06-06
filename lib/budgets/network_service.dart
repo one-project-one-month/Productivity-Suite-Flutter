@@ -1,6 +1,7 @@
 // Define the CategoryManager class for managing categories
 import 'package:dio/dio.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/category_model.dart';
 
@@ -11,10 +12,24 @@ class ApiEndPoints {
 
 class ApiService {
   static final Dio _dio = Dio();
-  static final String _token =
-      "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MjEsImVtYWlsIjoibW1ra0BnbWFpbC5jb20iLCJzdWIiOiJtbWtrQGdtYWlsLmNvbSIsImlzcyI6IjFQMU0iLCJpYXQiOjE3NDkxODQyMzAsImV4cCI6MTc0OTE5NTAzMH0._GQYZwPMOzjIaSvgmKFho46-SlDx2JP5KdXgvdcwrus";
-  static setUp({String? token}) {
-    _dio.options.headers['Authorization'] = 'Bearer $_token';
+  static const String _tokenKey = 'auth_token';
+
+  static Future<void> setUp({String? token}) async {
+    String? authToken = token;
+
+    // If no token provided, try to get from SharedPreferences
+    if (authToken == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        authToken = prefs.getString(_tokenKey);
+      } catch (e) {
+        print("Error getting stored token: $e");
+      }
+    }
+
+    if (authToken != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $authToken';
+    }
   }
 
   static const String baseUrl =
@@ -22,7 +37,7 @@ class ApiService {
 
   // Fetch categories from API
   static Future<Response> get(String url, [int? type]) async {
-    setUp();
+    await setUp();
     try {
       return await _dio.get(baseUrl + url, queryParameters: {'type': type});
     } catch (e) {
@@ -33,10 +48,10 @@ class ApiService {
 
   // Add a new category via API
   static Future<CategoryModel?> post(
-    Map<String, dynamic> data,
-    String url,
-  ) async {
-    setUp();
+      Map<String, dynamic> data,
+      String url,
+      ) async {
+    await setUp();
     try {
       final response = await _dio.post(baseUrl + url, data: data);
       return CategoryModel.fromJson(response.data);
@@ -48,11 +63,11 @@ class ApiService {
 
   // Edit a category via API
   static Future<bool> edit(
-    String id,
-    Map<String, dynamic> data,
-    String url,
-  ) async {
-    setUp();
+      String id,
+      Map<String, dynamic> data,
+      String url,
+      ) async {
+    await setUp();
     try {
       final endPoints = "$baseUrl$url/$id";
       await _dio.put(endPoints, data: data);
@@ -65,7 +80,7 @@ class ApiService {
 
   // Delete a category via API
   static Future<bool> delete(int id, String url) async {
-    setUp();
+    await setUp();
     try {
       final endPoints = "$baseUrl$url/$id";
       await _dio.delete(endPoints);
