@@ -4,13 +4,17 @@ import 'package:go_router/go_router.dart';
 import 'package:productivity_suite_flutter/budgets/providers/category_provider.dart';
 import 'package:productivity_suite_flutter/budgets/providers/transcation_provider.dart';
 import 'package:provider/provider.dart' as provider;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'main_app/config/route_config.dart';
+import 'pomodoro/utils/shared_prefs_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
+  final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
       child: provider.MultiProvider(
         providers: [
           provider.ChangeNotifierProvider(
