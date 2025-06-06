@@ -108,7 +108,8 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
     _lastTitle = current;
     setState(() {});
   }
-
+  
+  
   void _onDescriptionChanged() {
     if (_isPerformingUndoRedo) return;
     final current = descriptionController.text;
