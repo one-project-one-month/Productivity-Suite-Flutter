@@ -407,10 +407,11 @@ Future<void> _showInputDialog(
   PomodoroState state,
 ) async {
   final List<String> alertDialogDropdownOptions = [
-    'Default',
+    'Default', //invalid
     'Work',
     'Study',
-    'Social',
+    'personal',
+    'others',
   ];
   String? selectedDropdownValue = alertDialogDropdownOptions[0];
   final TextEditingController textFieldController = TextEditingController();
