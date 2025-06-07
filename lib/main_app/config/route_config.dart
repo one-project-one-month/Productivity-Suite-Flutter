@@ -8,7 +8,7 @@ import '../main_screen.dart';
 import '../screens/views/to_do_screen.dart';
 
 final GoRouter routes = GoRouter(
-  // initialLocation: '/login',
+  initialLocation: '/login',
   routes: [
     // GoRoute(path: '/login', builder: (context, state) => AuthScreen()),
     // GoRoute(path: '/register', builder: (context, state) => RegisterScreen()),

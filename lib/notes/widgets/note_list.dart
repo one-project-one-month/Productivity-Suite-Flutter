@@ -3,10 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:productivity_suite_flutter/notes/data/compress_data.dart';
 import 'package:productivity_suite_flutter/notes/data/note.dart';
 
-class NoteListItem extends StatelessWidget {
+class NoteListItem extends StatefulWidget {
   final Note note;
   final VoidCallback onTap;
-  final VoidCallback onPin;
+  final Future<void> Function()? onPinAsync;
   final VoidCallback onDelete;
   final bool selectionMode;
   final bool selected;
@@ -16,7 +16,7 @@ class NoteListItem extends StatelessWidget {
     super.key,
     required this.note,
     required this.onTap,
-    required this.onPin,
+    this.onPinAsync,
     required this.onDelete,
     this.selectionMode = false,
     this.selected = false,
@@ -24,18 +24,34 @@ class NoteListItem extends StatelessWidget {
   });
 
   @override
+  State<NoteListItem> createState() => _NoteListItemState();
+}
+
+class _NoteListItemState extends State<NoteListItem> {
+  bool isLoading = false;
+
+  Future<void> _handlePin() async {
+    if (widget.onPinAsync != null) {
+      setState(() => isLoading = true);
+      await widget.onPinAsync!();
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final note = widget.note;
     final formattedDate = DateFormat('MMMM d, h:mm a').format(note.updatedAt);
 
     return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       child: Card(
         elevation: 3,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
           side:
-              selectionMode && selected
+              widget.selectionMode && widget.selected
                   ? BorderSide(color: Color(0xff0045F3), width: 1.5)
                   : BorderSide(
                     color: Color(note.colorValue!).withOpacity(0.2),
@@ -76,15 +92,15 @@ class NoteListItem extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  if (selectionMode)
+                  if (widget.selectionMode)
                     Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Icon(
-                        selected
+                        widget.selected
                             ? Icons.check_circle
                             : Icons.radio_button_unchecked,
                         color:
-                            selected
+                            widget.selected
                                 ? const Color(0xff0045F3)
                                 : const Color.fromARGB(255, 51, 50, 50),
                       ),
@@ -99,16 +115,27 @@ class NoteListItem extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      note.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                      color:
+                  isLoading
+                      ? const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: CircularProgressIndicator.adaptive(),
+                        ),
+                      )
+                      : IconButton(
+                        icon: Icon(
                           note.isPinned
-                              ? Color(0xff0045F3)
-                              : const Color.fromARGB(255, 83, 81, 81),
-                    ),
-                    onPressed: onPin,
-                  ),
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined,
+                          color:
+                              note.isPinned
+                                  ? Color(0xff0045F3)
+                                  : const Color.fromARGB(255, 83, 81, 81),
+                        ),
+                        onPressed: _handlePin,
+                      ),
                 ],
               ),
               Text(

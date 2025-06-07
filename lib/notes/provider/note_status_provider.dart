@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'sync_status.dart';
+import '../data/sync_status.dart';
 
-// Initial state providers
 final syncStatusProvider = StateProvider<SyncStatus>(
   (ref) => SyncStatus.notSynced,
 );
 final syncErrorProvider = StateProvider<String?>((ref) => null);
 
-// Sync function provider that takes care of syncing notes
 final syncNotesProvider =
     Provider<Future<SyncResult> Function(String, BuildContext)>((ref) {
       return (categoryId, context) async {
@@ -19,7 +17,7 @@ final syncNotesProvider =
           notifier.state = SyncStatus.syncing;
           errorNotifier.state = null;
 
-          // TODO: Implement actual sync logic here
+          
           await Future.delayed(const Duration(seconds: 2)); // Simulated delay
 
           final result = SyncResult(
