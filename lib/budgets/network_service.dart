@@ -1,18 +1,17 @@
 // Define the CategoryManager class for managing categories
 import 'package:dio/dio.dart';
-import 'package:productivity_suite_flutter/notes/data/note.dart';
-
 import 'models/category_model.dart';
 
 class ApiEndPoints {
   static final String category = '/categories';
   static final String transcation = '/transactions';
+  static final String income = '/incomes';
 }
 
 class ApiService {
   static final Dio _dio = Dio();
   static final String _token =
-      "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MjEsImVtYWlsIjoibW1ra0BnbWFpbC5jb20iLCJzdWIiOiJtbWtrQGdtYWlsLmNvbSIsImlzcyI6IjFQMU0iLCJpYXQiOjE3NDkxODQyMzAsImV4cCI6MTc0OTE5NTAzMH0._GQYZwPMOzjIaSvgmKFho46-SlDx2JP5KdXgvdcwrus";
+      "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MjQsImVtYWlsIjoibWF5bWF5bWF5QGdtYWlsLmNvbSIsInN1YiI6Im1heW1heW1heUBnbWFpbC5jb20iLCJpc3MiOiIxUDFNIiwiaWF0IjoxNzQ5Mjk2MDYyLCJleHAiOjE3NDkzMDY4NjJ9.jbEToHR5JTbLECN1Ep5ZtoQ2gL8r1NUHAGg-Viw43eE";
   static setUp({String? token}) {
     _dio.options.headers['Authorization'] = 'Bearer $_token';
   }
@@ -24,7 +23,11 @@ class ApiService {
   static Future<Response> get(String url, [int? type]) async {
     setUp();
     try {
-      return await _dio.get(baseUrl + url, queryParameters: {'type': type});
+      final _response = await _dio.get(
+        baseUrl + url,
+        queryParameters: {'type': type},
+      );
+      return _response;
     } catch (e) {
       print("Error fetching categories: $e");
       throw Exception("Failed to fetch categories");
