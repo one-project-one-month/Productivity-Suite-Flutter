@@ -7,6 +7,10 @@ import 'package:provider/provider.dart' as provider;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main_app/config/route_config.dart';
 import 'pomodoro/utils/shared_prefs_provider.dart';
+import 'pomodoro/utils/shared_prefs_provider.dart';
+
+import 'package:hive_flutter/adapters.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +18,6 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
-      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
       child: provider.MultiProvider(
         providers: [
           provider.ChangeNotifierProvider(

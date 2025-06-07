@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../auth/auth_provider.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key, required this.shell});
@@ -10,6 +11,34 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Logout'),
+          content: Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await ref.read(authProvider.notifier).logout();
+                if (mounted) {
+                  context.go('/login');
+                }
+              },
+              child: Text('Logout', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     StatefulNavigationShell shell = widget.shell;
@@ -21,7 +50,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         indicatorColor: const Color(0xff0045f3),
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (index) {
-          shell.goBranch(index);
+          if (index == 4) {
+            // Logout button tapped
+            _showLogoutDialog();
+          } else {
+            shell.goBranch(index);
+          }
         },
         destinations: [
           NavigationDestination(
@@ -48,9 +82,16 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           NavigationDestination(
             icon: Icon(
               Icons.attach_money,
-              color: shell.currentIndex == 3 ? Colors.white : null,
+              color: shell.currentIndex == 3? Colors.white : null,
             ),
-            label: 'Budget Tracker',
+            label: 'Budget',
+          ),
+          NavigationDestination(
+            icon: Icon(
+              Icons.logout,
+              color: Colors.red,
+            ),
+            label: 'Logout',
           ),
         ],
       ),
