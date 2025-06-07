@@ -410,7 +410,8 @@ Future<void> _showInputDialog(
     'Default',
     'Work',
     'Study',
-    'Social',
+    'personal',
+    'others',
   ];
   String? selectedDropdownValue = alertDialogDropdownOptions[0];
   final TextEditingController textFieldController = TextEditingController();

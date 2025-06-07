@@ -11,6 +11,7 @@ import '../wss/pomodoro_web_socket_service.dart';
 class PomodoroNotifier extends Notifier<PomodoroState> {
   late PomodoroWebSocketServer _server;
   late SharedPreferences _prefs;
+  bool _isInitializingConnection = false;
 
   Timer? _localTimer;
 
@@ -119,25 +120,51 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
 
       // Handle "Time is already running" error
       if (remainingTimeValue == "Time is already running") {
+        print('[POMODORO] Server says timer already running, forcing stop...');
+
+        // Force stop the server timer and reset local state
+        _server.timerStop();
+
         state = state.copyWith(
-          errorMessage: 'A timer is already running. Please stop it first.',
-          timerState: PomodoroTimerState.idle, // Don't change to running
-          isRunning: false, // Don't set as running
+          errorMessage: 'Timer conflict detected. Stopping server timer...',
+          timerState: PomodoroTimerState.idle,
+          isRunning: false,
+          currentTimerId: null,
+          currentSequenceId: null,
         );
+
+        // After a delay, allow user to start fresh
+        Future.delayed(Duration(seconds: 2), () {
+          state = state.copyWith(errorMessage: null);
+        });
         return;
       }
+
+      // Handle type 0 (idle/stopped) responses
+      if (data['type'] == 0) {
+        print('[POMODORO] Server confirms timer stopped');
+        state = state.copyWith(
+          timerState: PomodoroTimerState.idle,
+          isRunning: false,
+          currentTimerId: null,
+          currentSequenceId: null,
+          errorMessage: null,
+        );
+        StateClass.pState = 0;
+        return;
+      }
+
       // --- Normal response handling ---
-      final timerStateFromResponse = _mapTimerStateFromResponse(
-        data,
-      ); // Get state based on WS data
+      final timerStateFromResponse = _mapTimerStateFromResponse(data);
       final remainingSeconds = _parseTimeString(remainingTimeValue);
 
+      // Handle timer completion
       if (remainingSeconds != null && remainingSeconds <= 0) {
-        // Timer has completed according to the server
+        print('[POMODORO] Timer completed');
         state = state.copyWith(
           currentResponse: response,
-          timerState: PomodoroTimerState.completed, // Mark as completed
-          remainingTime: 0, // Explicitly set to 0
+          timerState: PomodoroTimerState.completed,
+          remainingTime: 0,
           currentTimerId: data['timerId'],
           currentSequenceId: data['sequenceId'],
           isRunning: false,
@@ -145,20 +172,36 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
         );
         _handleTimerComplete(isWebSocketEvent: true);
         _saveToPrefs();
-        return; // IMPORTANT: Return here after handling completion
+        StateClass.pState = 0;
+        return;
       }
 
-      // If timer is not completed, update state as usual
+      // Normal timer update
+      print('[POMODORO] Timer update - Type: ${data['type']}, Time: $remainingTimeValue');
+
       state = state.copyWith(
         currentResponse: response,
         timerState: timerStateFromResponse,
-        remainingTime:
-            remainingSeconds ?? state.remainingTime, // Use parsed if available
+        remainingTime: remainingSeconds ?? state.remainingTime,
         currentTimerId: data['timerId'],
         currentSequenceId: data['sequenceId'],
         isRunning: timerStateFromResponse == PomodoroTimerState.running,
         errorMessage: null,
       );
+
+      // Update StateClass for UI
+      switch (timerStateFromResponse) {
+        case PomodoroTimerState.running:
+          StateClass.pState = 1;
+          break;
+        case PomodoroTimerState.paused:
+          StateClass.pState = 2;
+          break;
+        case PomodoroTimerState.idle:
+        case PomodoroTimerState.completed:
+          StateClass.pState = 0;
+          break;
+      }
 
       _saveToPrefs();
 
@@ -171,7 +214,31 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       );
     }
   }
+  Future<void> forceServerSync() async {
+    if (!state.isConnected) {
+      await connect();
+      return;
+    }
 
+    try {
+      // Send a stop command to clear any server-side running timers
+      await _server.forceStopTimer();
+
+      // Reset local state to idle
+      state = state.copyWith(
+        timerState: PomodoroTimerState.idle,
+        isRunning: false,
+        currentTimerId: null,
+        currentSequenceId: null,
+        errorMessage: null,
+      );
+      StateClass.pState = 0;
+
+      print('[POMODORO] Forced sync with server completed');
+    } catch (e) {
+      print('[POMODORO] Force sync failed: $e');
+    }
+  }
   // Add this method to parse time strings like "24:59"
   int? _parseTimeString(dynamic timeString) {
     if (timeString == null) return null;
@@ -194,6 +261,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
 
     return null;
   }
+
 
   Future<void> setSelectedTaskType(int selectedOptionValue) async {
     if (selectedOptionValue != -1) {
@@ -383,30 +451,20 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     _saveToPrefs();
   }
 
-  /// Reconnect WebSocket with new auth token after login
-  Future<void> reconnectAfterLogin() async {
-    print('Reconnecting Pomodoro WebSocket after login...');
-
-    // Disconnect first if connected
-    if (state.connectionState == PomodoroConnectionState.connected) {
-      _server.disconnect();
+  Future<void> connect() async {
+    // Prevent multiple simultaneous connection attempts
+    if (_isInitializingConnection) {
+      print('[POMODORO] Connection already in progress, skipping...');
+      return;
     }
 
-    // Wait a bit for cleanup
-    await Future.delayed(Duration(milliseconds: 500));
+    if (state.connectionState == PomodoroConnectionState.connecting ||
+        state.connectionState == PomodoroConnectionState.connected) {
+      print('[POMODORO] Already connecting/connected, skipping...');
+      return;
+    }
 
-    // Reconnect with new token
-    await _server.reconnectWithNewToken();
-
-    state = state.copyWith(
-      connectionState: PomodoroConnectionState.connecting,
-      errorMessage: null,
-    );
-  }
-
-// Also update the existing connect method to handle token refresh
-  Future<void> connect() async {
-    if (state.connectionState == PomodoroConnectionState.connecting) return;
+    _isInitializingConnection = true;
 
     state = state.copyWith(
       connectionState: PomodoroConnectionState.connecting,
@@ -414,31 +472,54 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     );
 
     try {
+      // Disconnect first if there's any existing connection
+      _server.disconnect();
+      await Future.delayed(Duration(milliseconds: 300));
+
       _server.connect();
+      print('[POMODORO] Connection initiated');
     } catch (e) {
       state = state.copyWith(
         connectionState: PomodoroConnectionState.error,
         errorMessage: 'Failed to connect: $e',
       );
+    } finally {
+      _isInitializingConnection = false;
     }
   }
+// Add this method to handle connection cleanup on logout
+  Future<void> disconnectAndCleanup() async {
+    _isInitializingConnection = false;
+    _server.disconnect();
 
+    state = state.copyWith(
+      connectionState: PomodoroConnectionState.disconnected,
+      timerState: PomodoroTimerState.idle,
+      isRunning: false,
+      currentTimerId: null,
+      currentSequenceId: null,
+      currentResponse: null,
+      errorMessage: null,
+    );
+    StateClass.pState = 0;
+  }
+
+// Update the existing startNewPomodoro method to use the safe start:
   Future<void> startNewPomodoro({
     int? duration,
     String? description,
     int timerType = 1,
   }) async {
-    final actualDuration =
-        duration ??
-        _getDurationForMode(
-          state.mode,
-          focusDuration: state.focusDuration,
-          shortBreakDuration: state.shortBreakDuration,
-          longBreakDuration: state.longBreakDuration,
-        );
+    final actualDuration = duration ?? _getDurationForMode(
+      state.mode,
+      focusDuration: state.focusDuration,
+      shortBreakDuration: state.shortBreakDuration,
+      longBreakDuration: state.longBreakDuration,
+    );
+
     if (!state.isConnected) {
       await connect();
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 2)); // Give more time for connection
     }
 
     if (!state.isConnected) {
@@ -449,13 +530,14 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     }
 
     try {
-      _server.startPomodoro(
+      // Use the safe start method
+      await _server.startPomodoroSafe(
         duration: actualDuration,
         remainingTime: actualDuration,
         timerType: timerType,
         description: description ?? "Work session",
       );
-      print('new pomodoro started');
+      print('New pomodoro started safely');
 
       StateClass.pState = 1;
       state = state.copyWith(
@@ -470,7 +552,6 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       startLocalTimer();
     }
   }
-
   Future<void> startExistingPomodoro({
     required int duration,
     required int remainingTime,
@@ -539,6 +620,262 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       state = state.copyWith(errorMessage: 'Failed to resume timer: $e');
     }
   }*/
+  /// Start new short break session
+  Future<void> startNewShortBreak({
+    int? duration,
+    String? description,
+  }) async {
+    final actualDuration = duration ?? state.shortBreakDuration;
+
+    if (!state.isConnected) {
+      await connect();
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    if (!state.isConnected) {
+      // Fallback to local timer
+      changeMode(PomodoroMode.shortBreak);
+      startLocalTimer();
+      StateClass.pState = 1;
+      return;
+    }
+
+    try {
+      _server.startShortBreak(
+        duration: actualDuration,
+        remainingTime: actualDuration,
+        description: description ?? "Short break session",
+        sequenceId: state.currentSequenceId,
+      );
+      print('Short break started');
+
+      StateClass.pState = 1;
+      state = state.copyWith(
+        mode: PomodoroMode.shortBreak,
+        timerState: PomodoroTimerState.running,
+        isRunning: true,
+        remainingTime: actualDuration,
+        isNewPomodoro: true,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to start short break: $e');
+      // Fallback to local timer
+      changeMode(PomodoroMode.shortBreak);
+      startLocalTimer();
+    }
+  }
+
+  /// Start new long break session
+  Future<void> startNewLongBreak({
+    int? duration,
+    String? description,
+  }) async {
+    final actualDuration = duration ?? state.longBreakDuration;
+
+    if (!state.isConnected) {
+      await connect();
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    if (!state.isConnected) {
+      // Fallback to local timer
+      changeMode(PomodoroMode.longBreak);
+      startLocalTimer();
+      StateClass.pState = 1;
+      return;
+    }
+
+    try {
+      _server.startLongBreak(
+        duration: actualDuration,
+        remainingTime: actualDuration,
+        description: description ?? "Long break session",
+        sequenceId: state.currentSequenceId,
+      );
+      print('Long break started');
+
+      StateClass.pState = 1;
+      state = state.copyWith(
+        mode: PomodoroMode.longBreak,
+        timerState: PomodoroTimerState.running,
+        isRunning: true,
+        remainingTime: actualDuration,
+        isNewPomodoro: true,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to start long break: $e');
+      // Fallback to local timer
+      changeMode(PomodoroMode.longBreak);
+      startLocalTimer();
+    }
+  }
+
+  /// Resume short break timer
+  Future<void> resumeShortBreak({
+    required int remainingTime,
+    required int timerId,
+    required int sequenceId,
+  }) async {
+    if (!state.isConnected) {
+      // If not connected, resume locally
+      await resumeLocalTimer();
+      StateClass.pState = 1;
+      return;
+    }
+
+    try {
+      _server.resumeShortBreak(
+        remainingTime: remainingTime,
+        timerId: timerId,
+        sequenceId: sequenceId,
+      );
+
+      StateClass.pState = 1;
+
+      state = state.copyWith(
+        mode: PomodoroMode.shortBreak,
+        timerState: PomodoroTimerState.running,
+        isRunning: true,
+        remainingTime: remainingTime,
+        currentTimerId: timerId,
+        currentSequenceId: sequenceId,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to resume short break: $e');
+      // Fallback to local resume
+      await resumeLocalTimer();
+    }
+  }
+
+  /// Resume long break timer
+  Future<void> resumeLongBreak({
+    required int remainingTime,
+    required int timerId,
+    required int sequenceId,
+  }) async {
+    if (!state.isConnected) {
+      // If not connected, resume locally
+      await resumeLocalTimer();
+      StateClass.pState = 1;
+      return;
+    }
+
+    try {
+      _server.resumeLongBreak(
+        remainingTime: remainingTime,
+        timerId: timerId,
+        sequenceId: sequenceId,
+      );
+
+      StateClass.pState = 1;
+
+      state = state.copyWith(
+        mode: PomodoroMode.longBreak,
+        timerState: PomodoroTimerState.running,
+        isRunning: true,
+        remainingTime: remainingTime,
+        currentTimerId: timerId,
+        currentSequenceId: sequenceId,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to resume long break: $e');
+      // Fallback to local resume
+      await resumeLocalTimer();
+    }
+  }
+
+  /// Stop short break timer
+  Future<void> stopShortBreak() async {
+    _localTimer?.cancel();
+
+    if (!state.isConnected) {
+      pauseLocalTimer();
+      StateClass.pState = 2;
+      state = state.copyWith(
+        timerState: PomodoroTimerState.paused,
+        isRunning: false,
+        errorMessage: 'Cannot stop timer: Not connected to server',
+      );
+      return;
+    }
+
+    try {
+      _server.stopShortBreak();
+      StateClass.pState = 2;
+      state = state.copyWith(
+        mode: PomodoroMode.shortBreak,
+        timerState: PomodoroTimerState.paused,
+        isRunning: false,
+        currentResponse: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to stop short break: $e',
+        timerState: PomodoroTimerState.paused,
+        isRunning: false,
+      );
+    }
+  }
+
+  /// Stop long break timer
+  Future<void> stopLongBreak() async {
+    _localTimer?.cancel();
+
+    if (!state.isConnected) {
+      pauseLocalTimer();
+      StateClass.pState = 2;
+      state = state.copyWith(
+        timerState: PomodoroTimerState.paused,
+        isRunning: false,
+        errorMessage: 'Cannot stop timer: Not connected to server',
+      );
+      return;
+    }
+
+    try {
+      _server.stopLongBreak();
+      StateClass.pState = 2;
+      state = state.copyWith(
+        mode: PomodoroMode.longBreak,
+        timerState: PomodoroTimerState.paused,
+        isRunning: false,
+        currentResponse: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to stop long break: $e',
+        timerState: PomodoroTimerState.paused,
+        isRunning: false,
+      );
+    }
+  }
+
+  /// Reconnect WebSocket with new auth token after login
+  Future<void> reconnectAfterLogin() async {
+    print('Reconnecting Pomodoro WebSocket after login...');
+
+    // Disconnect first if connected
+    if (state.connectionState == PomodoroConnectionState.connected) {
+      _server.disconnect();
+    }
+
+    // Wait a bit for cleanup
+    await Future.delayed(Duration(milliseconds: 500));
+
+    // Reconnect with new token
+    await _server.reconnectWithNewToken();
+
+    state = state.copyWith(
+      connectionState: PomodoroConnectionState.connecting,
+      errorMessage: null,
+    );
+  }
 
   Future<void> resetTimer({required int timerId}) async {
     if (!state.isConnected) {
@@ -719,7 +1056,111 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
           'A timer is already running on the server. Stop it first to start a new one.',
     );
   }
+  /// Smart start method that determines what type of session to start based on current mode
+  Future<void> startCurrentModeSession({
+    String? description,
+  }) async {
+    switch (state.mode) {
+      case PomodoroMode.work:
+        await startNewPomodoro(description: description);
+        break;
+      case PomodoroMode.shortBreak:
+        await startNewShortBreak(description: description);
+        break;
+      case PomodoroMode.longBreak:
+        await startNewLongBreak(description: description);
+        break;
+    }
+  }
 
+  /// Smart resume method that determines what type of session to resume based on current mode
+  Future<void> resumeCurrentModeSession() async {
+    if (state.currentTimerId == null || state.currentSequenceId == null) {
+      state = state.copyWith(errorMessage: 'Cannot resume: Missing timer or sequence ID');
+      return;
+    }
+
+    switch (state.mode) {
+      case PomodoroMode.work:
+        await resumeTimer(
+          remainingTime: state.remainingTime,
+          timerId: state.currentTimerId!,
+          sequenceId: state.currentSequenceId!,
+        );
+        break;
+      case PomodoroMode.shortBreak:
+        await resumeShortBreak(
+          remainingTime: state.remainingTime,
+          timerId: state.currentTimerId!,
+          sequenceId: state.currentSequenceId!,
+        );
+        break;
+      case PomodoroMode.longBreak:
+        await resumeLongBreak(
+          remainingTime: state.remainingTime,
+          timerId: state.currentTimerId!,
+          sequenceId: state.currentSequenceId!,
+        );
+        break;
+    }
+  }
+
+  /// Smart stop method that determines what type of session to stop based on current mode
+  Future<void> stopCurrentModeSession() async {
+    switch (state.mode) {
+      case PomodoroMode.work:
+        await stopTimer();
+        break;
+      case PomodoroMode.shortBreak:
+        await stopShortBreak();
+        break;
+      case PomodoroMode.longBreak:
+        await stopLongBreak();
+        break;
+    }
+  }
+
+  /// Get the timer type for WebSocket based on current mode
+  int get currentTimerType {
+    switch (state.mode) {
+      case PomodoroMode.work:
+        return 1; // Work session
+      case PomodoroMode.shortBreak:
+        return 2; // Short break
+      case PomodoroMode.longBreak:
+        return 3; // Long break
+    }
+  }
+
+  /// Check if current session can auto-transition to next mode
+  bool get canAutoTransition {
+    return state.timerState == PomodoroTimerState.completed;
+  }
+
+  /// Auto-transition to next logical mode after session completion
+  Future<void> autoTransitionToNextMode() async {
+    if (!canAutoTransition) return;
+
+    const maxWorkSessions = 4;
+
+    if (state.mode == PomodoroMode.work) {
+      final newWorkCount = state.completedWorkSessions + 1;
+
+      if (newWorkCount >= maxWorkSessions) {
+        // After 4 work sessions, start long break
+        changeMode(PomodoroMode.longBreak);
+        await startNewLongBreak(description: "Long break after 4 work sessions");
+      } else {
+        // Start short break
+        changeMode(PomodoroMode.shortBreak);
+        await startNewShortBreak(description: "Short break after work session");
+      }
+    } else {
+      // After any break, go back to work
+      changeMode(PomodoroMode.work);
+      await startNewPomodoro(description: "Work session after break");
+    }
+  }
   void disconnect() {
     _server.disconnect();
     state = state.copyWith(
