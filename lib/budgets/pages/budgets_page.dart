@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:productivity_suite_flutter/budgets/models/category_model.dart';
 import 'package:productivity_suite_flutter/budgets/pages/category_page.dart';
+import 'package:productivity_suite_flutter/budgets/pages/income_page.dart';
 import 'package:productivity_suite_flutter/budgets/pages/transcation_history_page.dart';
 import 'package:productivity_suite_flutter/budgets/providers/category_provider.dart';
 import 'package:productivity_suite_flutter/budgets/providers/transcation_provider.dart';
@@ -64,7 +65,17 @@ class BudgetPage extends StatelessWidget {
                             style: TextStyle(fontSize: 16),
                           ),
                           Spacer(),
-                          TextButton(onPressed: () {}, child: Text("Edit")),
+                          // TextButton(
+                          //   onPressed: () {
+                          //     Navigator.push(
+                          //       context,
+                          //       MaterialPageRoute(
+                          //         builder: (context) => IncomePage(),
+                          //       ),
+                          //     );
+                          //   },
+                          //   child: Text("Edit"),
+                          // ),
                         ],
                       ),
                       LinearProgressIndicator(

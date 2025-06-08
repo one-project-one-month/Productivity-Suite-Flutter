@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:productivity_suite_flutter/budgets/providers/category_provider.dart';
+import 'package:productivity_suite_flutter/budgets/providers/income_provider.dart';
 import 'package:productivity_suite_flutter/budgets/providers/transcation_provider.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,12 +30,21 @@ void main() async {
           provider.ChangeNotifierProvider(
             create: (_) => TranscationProvider()..getTranscations(),
           ),
+          provider.ChangeNotifierProvider(
+            create: (_) => IncomeProvider()..getIncomes(),
+          ),
+          // provider.ProxyProvider<CategoryProvider, IncomeProvider>(
+          //   update:
+          //       (context, firstProvider, secondProvider) =>
+          //           IncomeProvider(context),
+          // ),
         ],
         child: MyApp(),
       ),
     ),
   );
 }
+
 
 Future<void> noteTakingSetup() async {
   final dir = await getApplicationDocumentsDirectory();

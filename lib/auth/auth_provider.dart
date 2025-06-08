@@ -268,52 +268,52 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
 
-      Future<bool> login(String email, String password) async {
-        state = state.copyWith(isLoading: true);
+  Future<bool> login(String email, String password) async {
+    state = state.copyWith(isLoading: true);
 
-        final url = Uri.parse(
-          'https://productivity-suite-java.onrender.com/productivity-suite/api/v1/auth/login',
-        );
-        try {
-          final response = await http.post(
-            url,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'password': password}),
+    final url = Uri.parse(
+      'https://productivity-suite-java.onrender.com/productivity-suite/api/v1/auth/login',
+    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final token = responseData['data']?['accessToken'] as String?;
+
+        if (token != null) {
+          // Store the token and email
+          await _storeAuth(token, email);
+
+          state = state.copyWith(
+            isAuthenticated: true,
+            isLoading: false,
+            token: token,
           );
 
-          if (response.statusCode == 200) {
-            final responseData = json.decode(response.body);
-            final token = responseData['data']?['accessToken'] as String?;
+          // Notify Pomodoro to reconnect with new token
+          try {
+            final pomodoroNotifier = _ref.read(pomodoroNotifierProvider.notifier);
+            await pomodoroNotifier.reconnectAfterLogin();
+            print('Pomodoro WebSocket reconnected with new token');
+          } catch (e) {
+            print('Failed to reconnect Pomodoro WebSocket: $e');
+          }
 
-            if (token != null) {
-              // Store the token and email
-              await _storeAuth(token, email);
+          print('Login successful, token stored');
+          return true;
+        }
 
-              state = state.copyWith(
-                isAuthenticated: true,
-                isLoading: false,
-                token: token,
-              );
-
-              // Notify Pomodoro to reconnect with new token
-              try {
-                final pomodoroNotifier = _ref.read(pomodoroNotifierProvider.notifier);
-                await pomodoroNotifier.reconnectAfterLogin();
-                print('Pomodoro WebSocket reconnected with new token');
-              } catch (e) {
-                print('Failed to reconnect Pomodoro WebSocket: $e');
-              }
-
-              print('Login successful, token stored');
-              return true;
-            }
-
-            state = state.copyWith(
-              generalError: 'Invalid server response: no token',
-              isLoading: false,
-            );
-            return false;
-          } else {
+        state = state.copyWith(
+          generalError: 'Invalid server response: no token',
+          isLoading: false,
+        );
+        return false;
+      } else {
         try {
           final responseData = jsonDecode(response.body);
           if (responseData is Map<String, dynamic> &&

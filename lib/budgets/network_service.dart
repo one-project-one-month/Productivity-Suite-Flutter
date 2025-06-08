@@ -8,6 +8,7 @@ import 'models/category_model.dart';
 class ApiEndPoints {
   static final String category = '/categories';
   static final String transcation = '/transactions';
+  static final String income = '/incomes';
 }
 
 class ApiService {
@@ -39,7 +40,11 @@ class ApiService {
   static Future<Response> get(String url, [int? type]) async {
     await setUp();
     try {
-      return await _dio.get(baseUrl + url, queryParameters: {'type': type});
+      final _response = await _dio.get(
+        baseUrl + url,
+        queryParameters: {'type': type},
+      );
+      return _response;
     } catch (e) {
       print("Error fetching categories: $e");
       throw Exception("Failed to fetch categories");
