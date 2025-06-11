@@ -39,7 +39,7 @@ class FolderShapeWithBorder extends StatelessWidget {
           width: 160,
           height: 100,
           color: color.withOpacity(0.74),
-          padding: const EdgeInsets.only(top: 30.0, left: 16.0, right: 12.0),
+          padding: const EdgeInsets.only(top: 1.0, left: 16.0, right: 12.0),
           child: Row(
             children: [
               Column(

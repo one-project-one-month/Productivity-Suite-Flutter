@@ -9,8 +9,7 @@ import '../../auth/register_screen.dart';
 import '../../auth/auth_provider.dart';
 import '../../pomodoro/pomodoro.dart';
 import '../main_screen.dart';
-import '../screens/views/to_do_screen.dart';
-
+import '../../todo/todo.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
@@ -87,7 +86,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'to_do',
                 path: '/to_do',
                 builder: (context, state) {
-                  return ToDoScreen();
+                  return Todo();
                 },
               ),
             ],

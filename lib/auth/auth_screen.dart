@@ -62,7 +62,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     GestureDetector(
                       onTap: () => setState(() => _isLoginSelected = true),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 60, vertical: 12),
+                        padding: EdgeInsets.symmetric(horizontal: 54, vertical: 12),
                         decoration: BoxDecoration(
                           color: _isLoginSelected ? Colors.white : Colors.transparent,
                           borderRadius: BorderRadius.circular(25),
@@ -79,7 +79,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     GestureDetector(
                       onTap: () => context.go('/register'),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 56, vertical: 12),
+                        padding: EdgeInsets.symmetric(horizontal: 44, vertical: 12),
                         decoration: BoxDecoration(
                           color: !_isLoginSelected ? Colors.white : Colors.transparent,
                           borderRadius: BorderRadius.circular(25),

@@ -17,304 +17,461 @@ class BudgetPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sample expense data
     final expenseData = {'Entertainment': 100000.0};
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         title: const Text(
           'Budget Tracker',
           style: TextStyle(
-            color: Colors.deepPurpleAccent,
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w400,
             fontSize: 24,
           ),
         ),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ContainerWithBorder(
-                color: Colors.blue,
-                title: 'Total Balance',
-                child: Text(
-                  "-MMK 100,000",
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              const SizedBox(height: 8),
+
+              // Balance Card with Gradient
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF667EEA).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-              ),
-              ContainerWithBorder(
-                color: Colors.green,
-                title: 'Monthly Budget',
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            "Budget: MMK 2,000,000",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          Spacer(),
-                          // TextButton(
-                          //   onPressed: () {
-                          //     Navigator.push(
-                          //       context,
-                          //       MaterialPageRoute(
-                          //         builder: (context) => IncomePage(),
-                          //       ),
-                          //     );
-                          //   },
-                          //   child: Text("Edit"),
-                          // ),
-                        ],
-                      ),
-                      LinearProgressIndicator(
-                        minHeight: 8,
-                        borderRadius: BorderRadius.all(Radius.circular(8)),
-                        value: 0.05,
-                        backgroundColor: Colors.grey.shade200,
-                        color: Colors.deepPurpleAccent,
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            "MMK 1,900,000 remaining",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.green,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                          Spacer(),
-                          Text(
-                            "5% used",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // ContainerWithBorder(
-              //   color: Colors.red,
-              //   title: 'Recent Activity',
-              //   child: Padding(
-              //     padding: const EdgeInsets.symmetric(horizontal: 10),
-              //     child: Row(
-              //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //       children: [
-              //         Column(
-              //           crossAxisAlignment: CrossAxisAlignment.start,
-              //           children: [
-              //             Text(
-              //               "Income",
-              //               style: TextStyle(
-              //                 color: Colors.grey.shade700,
-              //                 fontSize: 18,
-              //               ),
-              //             ),
-              //             Text(
-              //               "MMK 0",
-              //               style: TextStyle(
-              //                 color: Colors.green,
-              //                 fontSize: 18,
-              //                 fontWeight: FontWeight.w700,
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //         Column(
-              //           crossAxisAlignment: CrossAxisAlignment.start,
-              //           children: [
-              //             Text(
-              //               "Expenses",
-              //               style: TextStyle(
-              //                 color: Colors.grey.shade700,
-              //                 fontSize: 18,
-              //               ),
-              //             ),
-              //             Text(
-              //               "MMK 100,000",
-              //               style: TextStyle(
-              //                 color: Colors.red,
-              //                 fontSize: 18,
-              //                 fontWeight: FontWeight.w700,
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //       ],
-              //     ),
-              //   ),
-              // ),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Wrap(
-                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Transactions",
+                    const Text(
+                      'Total Balance',
                       style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.deepPurpleAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '-MMK 100,000',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
                       ),
-                      icon: Icon(Icons.add),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder:
-                              (context) => Padding(
-                                padding: const EdgeInsets.all(18.0),
-                                child: AddTranscationWidget(),
-                              ),
-                        );
-                      },
-                      label: Text("Add Transcation"),
                     ),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.deepPurpleAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        '📉 Budget Alert',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      icon: Icon(Icons.add),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => CategoryPage(),
-                          ),
-                        );
-                      },
-                      label: Text("Category"),
                     ),
                   ],
                 ),
               ),
-              ContainerWidget(
-                widget: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: RecentTranscationWidget(),
+
+              const SizedBox(height: 24),
+
+              // Monthly Budget Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Monthly Budget',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            '5% used',
+                            style: TextStyle(
+                              color: Color(0xFF10B981),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'MMK 2,000,000',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: 0.05,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'MMK 1,900,000 remaining',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF10B981),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              ContainerWidget(
-                widget: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ExpenseBreakdownWidget(expenses: expenseData),
-                ),
+
+              const SizedBox(height: 32),
+
+              // Action Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
               ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      context,
+                      icon: Icons.add_circle_outline,
+                      label: 'Add Transaction',
+                      color: const Color(0xFF667EEA),
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                            padding: EdgeInsets.only(
+                              top: 20,
+                              left: 20,
+                              right: 20,
+                              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                            ),
+                            child: AddTransactionWidget(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildActionButton(
+                      context,
+                      icon: Icons.category_outlined,
+                      label: 'Categories',
+                      color: const Color(0xFF10B981),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => CategoryPage()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Recent Transactions
+              _buildSectionCard(
+                child: RecentTransactionWidget(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Expense Breakdown
+              _buildSectionCard(
+                child: ExpenseBreakdownWidget(expenses: expenseData),
+              ),
+
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class AddTranscationWidget extends StatelessWidget {
-  AddTranscationWidget({super.key});
+  Widget _buildActionButton(
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        required Color color,
+        required VoidCallback onTap,
+      }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final providerTranscation = context.read<TranscationProvider>();
-    return SingleChildScrollView(
-      child: Column(
-        spacing: 10,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            "Add New Transaction",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          TextFieldWidget(
-            txtController: providerTranscation.txtDescription,
-            hintText: "Description",
-            maxLine: 5,
-          ),
-          TextFieldWidget(
-            txtController: providerTranscation.txtAmount,
-            hintText: "Amount",
-            keyboardType: TextInputType.number,
-          ),
-          // DropdownButtonFormField(
-          //   decoration: InputDecoration(
-          //     hintText: "Income",
-          //     border: OutlineInputBorder(
-          //       borderRadius: BorderRadius.circular(10),
-          //       borderSide: BorderSide(color: Colors.grey),
-          //     ),
-          //   ),
-          //   items:
-          //       type
-          //           .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-          //           .toList(),
-          //   onChanged: (value) {},
-          // ),
-          Consumer<CategoryProvider>(
-            builder:
-                (context, provider, child) => DropdownButtonFormField(
-                  decoration: InputDecoration(
-                    hintText: "Food",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                  ),
-                  value: providerTranscation.category,
-                  items:
-                      provider.categories
-                          .map(
-                            (e) =>
-                                DropdownMenuItem(value: e, child: Text(e.name)),
-                          )
-                          .toList(),
-                  onChanged: (value) {
-                    providerTranscation.changeCategory(value);
-                  },
-                ),
-          ),
-          CustomButtonWidget(
-            onTapFunc: () async {
-              final success = await providerTranscation.postNewTranscation();
-              if (success) {
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Something went wrong!"),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            text: "Add",
+  Widget _buildSectionCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: child,
+    );
+  }
+}
+
+class AddTransactionWidget extends StatelessWidget {
+  AddTransactionWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final providerTransaction = context.read<TranscationProvider>();
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          const Text(
+            'Add New Transaction',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          _buildInputField(
+            label: 'Description',
+            child: TextFieldWidget(
+              txtController: providerTransaction.txtDescription,
+              hintText: "What did you spend on?",
+              maxLine: 3,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          _buildInputField(
+            label: 'Amount (MMK)',
+            child: TextFieldWidget(
+              txtController: providerTransaction.txtAmount,
+              hintText: "0",
+              keyboardType: TextInputType.number,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          _buildInputField(
+            label: 'Category',
+            child: Consumer<CategoryProvider>(
+              builder: (context, provider, child) => Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonFormField(
+                  decoration: const InputDecoration(
+                    hintText: "Select category",
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  value: providerTransaction.category,
+                  items: provider.categories
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e.name)))
+                      .toList(),
+                  onChanged: (value) {
+                    providerTransaction.changeCategory(value);
+                  },
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () async {
+                final success = await providerTransaction.postNewTranscation();
+                if (success) {
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Something went wrong!"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF667EEA),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Add Transaction',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
     );
   }
 }
@@ -326,122 +483,136 @@ class ExpenseBreakdownWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 2,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Expense Breakdown",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1E293B),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Expense Breakdown",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          AspectRatio(
-            aspectRatio: 1.3,
+        ),
+        const SizedBox(height: 20),
+
+        if (expenses.isEmpty)
+          _buildEmptyState()
+        else ...[
+          SizedBox(
+            height: 200,
             child: PieChart(
               PieChartData(
-                sectionsSpace: 0,
-                centerSpaceRadius: 0,
+                sectionsSpace: 2,
+                centerSpaceRadius: 60,
                 sections: _createSections(),
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           ..._createLegendItems(),
         ],
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.pie_chart_outline, size: 48, color: Colors.grey),
+            SizedBox(height: 12),
+            Text(
+              'No expenses yet',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   List<PieChartSectionData> _createSections() {
-    if (expenses.isEmpty) {
-      return [
-        PieChartSectionData(
-          color: Colors.grey[300],
-          value: 100,
-          title: '',
-          radius: 100,
-        ),
-      ];
-    }
+    if (expenses.isEmpty) return [];
 
     final total = expenses.values.reduce((a, b) => a + b);
     final colors = {
-      'Entertainment': Colors.amber,
-      'Food': Colors.blue,
-      'Healthcare': Colors.red,
-      'Transportation': Colors.green,
-      'Housing': Colors.purple,
-      'Utilities': Colors.orange,
-      'Others': Colors.grey,
+      'Entertainment': const Color(0xFFF59E0B),
+      'Food': const Color(0xFF3B82F6),
+      'Healthcare': const Color(0xFFEF4444),
+      'Transportation': const Color(0xFF10B981),
+      'Housing': const Color(0xFF8B5CF6),
+      'Utilities': const Color(0xFFF97316),
+      'Others': const Color(0xFF6B7280),
     };
 
     return expenses.entries.map((entry) {
-      final percentage = (entry.value / total) * 100;
       return PieChartSectionData(
-        color: colors[entry.key] ?? Colors.grey,
+        color: colors[entry.key] ?? const Color(0xFF6B7280),
         value: entry.value,
         title: '',
-        radius: 100,
+        radius: 40,
       );
     }).toList();
   }
 
   List<Widget> _createLegendItems() {
-    if (expenses.isEmpty) {
-      return [
-        Row(
-          children: [
-            Container(width: 16, height: 16, color: Colors.grey[300]),
-            const SizedBox(width: 8),
-            Text('No expenses', style: TextStyle(color: Colors.grey[600])),
-          ],
-        ),
-      ];
-    }
+    if (expenses.isEmpty) return [];
 
     final total = expenses.values.reduce((a, b) => a + b);
     final colors = {
-      'Entertainment': Colors.amber,
-      'Food': Colors.blue,
-      'Healthcare': Colors.red,
-      'Transportation': Colors.green,
-      'Housing': Colors.purple,
-      'Utilities': Colors.orange,
-      'Others': Colors.grey,
+      'Entertainment': const Color(0xFFF59E0B),
+      'Food': const Color(0xFF3B82F6),
+      'Healthcare': const Color(0xFFEF4444),
+      'Transportation': const Color(0xFF10B981),
+      'Housing': const Color(0xFF8B5CF6),
+      'Utilities': const Color(0xFFF97316),
+      'Others': const Color(0xFF6B7280),
     };
 
     return expenses.entries.map((entry) {
       final percentage = (entry.value / total) * 100;
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
           children: [
             Container(
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: colors[entry.key] ?? Colors.grey,
-                borderRadius: BorderRadius.circular(2),
+                color: colors[entry.key] ?? const Color(0xFF6B7280),
+                borderRadius: BorderRadius.circular(4),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                entry.key,
+                style: const TextStyle(
+                  color: Color(0xFF374151),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
             Text(
-              '${entry.key} (${percentage.toStringAsFixed(1)}%)',
-              style: TextStyle(
-                color: Colors.grey[800],
+              '${percentage.toStringAsFixed(1)}%',
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
                 fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
             ),
           ],
@@ -451,46 +622,25 @@ class ExpenseBreakdownWidget extends StatelessWidget {
   }
 }
 
-class RecentTranscationWidget extends StatelessWidget {
-  RecentTranscationWidget({super.key});
-  // List<TranscationModel> temps = [
-  //   TranscationModel(
-  //     id: "422",
-  //     type: "Income",
-  //     usage: "Food",
-  //     description: "Snacks",
-  //     createDate: DateTime.now(),
-  //     amount: 30000,
-  //   ),
-  //   TranscationModel(
-  //     id: "343",
-  //     type: "Expense",
-  //     usage: "Healthcare",
-  //     description: "Medicine",
-  //     createDate: DateTime.now(),
-  //     amount: 200000000,
-  //   ),
-  //   TranscationModel(
-  //     id: "424",
-  //     type: "Income",
-  //     usage: "Investment",
-  //     description: "Monthly",
-  //     createDate: DateTime.now(),
-  //     amount: 3000000,
-  //   ),
-  // ];
+class RecentTransactionWidget extends StatelessWidget {
+  RecentTransactionWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Transaction History",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            const Text(
+              "Recent Transactions",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E293B),
+              ),
             ),
-            Spacer(),
             TextButton(
               onPressed: () {
                 Navigator.of(context).push(
@@ -499,170 +649,159 @@ class RecentTranscationWidget extends StatelessWidget {
                   ),
                 );
               },
-              child: Text("See More"),
+              child: const Text(
+                "See All",
+                style: TextStyle(
+                  color: Color(0xFF667EEA),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
-        Consumer<TranscationProvider>(
-          builder:
-              (context, provider, child) => ListView.separated(
-                separatorBuilder: (context, index) => Divider(),
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: provider.transcationsList.length,
-                itemBuilder: (context, index) {
-                  TranscationModel obj = provider.transcationsList[index];
-                  return Container(
-                    // decoration: BoxDecoration(
-                    //   borderRadius: BorderRadius.all(Radius.circular(10)),
-                    //   border: Border.all(color: Colors.grey.shade300),
-                    // ),
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    margin: EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      spacing: 8,
-                      children: [
-                        // Flexible(
-                        //   flex: 2,
-                        //   child:
-                        //       obj.type == "Income"
-                        //           ? Icon(Icons.arrow_downward)
-                        //           : Icon(Icons.arrow_upward),
-                        // ),
-                        Expanded(
-                          flex: 12,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                obj.description,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              Text(
-                                "${obj.categoryName} . \n${DateFormat('MMMM d, y').format(DateTime.fromMillisecondsSinceEpoch(obj.transactionDate * 1000))}",
-                                style: TextStyle(
-                                  color: const Color.fromARGB(
-                                    255,
-                                    131,
-                                    131,
-                                    131,
-                                  ),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+        const SizedBox(height: 16),
 
-                        Expanded(
-                          flex: 6,
-                          child: FittedBox(
-                            child: Text(
-                              "- \$${obj.amount}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: Colors.red,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Flexible(
-                          flex: 2,
-                          child: IconButton(
-                            onPressed: () async {
-                              final success = await provider.removeTransaction(
-                                obj.id,
-                              );
-                              if (success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Transaction deleted!"),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Transaction not deleted!"),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
-                            icon: Icon(Icons.delete),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+        Consumer<TranscationProvider>(
+          builder: (context, provider, child) {
+            if (provider.transcationsList.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return ListView.separated(
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: provider.transcationsList.length > 5 ? 5 : provider.transcationsList.length,
+              itemBuilder: (context, index) {
+                TranscationModel transaction = provider.transcationsList[index];
+                return _buildTransactionItem(context, transaction, provider);
+              },
+            );
+          },
         ),
       ],
     );
   }
-}
 
-class ContainerWidget extends StatelessWidget {
-  const ContainerWidget({super.key, required this.widget});
-  final Widget widget;
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildEmptyState() {
     return Container(
-      margin: EdgeInsets.all(6),
-      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      height: 120,
       decoration: BoxDecoration(
-        border: Border.all(
-          color: const Color.fromARGB(255, 216, 216, 216),
-          width: 2,
-        ),
-        color: const Color.fromARGB(255, 251, 251, 251),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
-      child: widget,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long_outlined, size: 32, color: Colors.grey),
+            SizedBox(height: 8),
+            Text(
+              'No transactions yet',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
-}
 
-class ContainerWithBorder extends StatelessWidget {
-  const ContainerWithBorder({
-    super.key,
-    required this.color,
-    required this.title,
-    required this.child,
-  });
-  final Color color;
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildTransactionItem(BuildContext context, TranscationModel transaction, TranscationProvider provider) {
     return Container(
-      margin: EdgeInsets.all(6),
-      padding: EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey),
-      ),
-
-      // height: 150,
-      width: double.infinity,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.arrow_upward,
+              color: Color(0xFFEF4444),
+              size: 20,
             ),
           ),
-          Padding(padding: const EdgeInsets.all(8.0), child: child),
+          const SizedBox(width: 16),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.description,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${transaction.categoryName} • ${DateFormat('MMM d, y').format(DateTime.fromMillisecondsSinceEpoch(transaction.transactionDate * 1000))}",
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "-MMK ${NumberFormat('#,##0').format(transaction.amount)}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFEF4444),
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              GestureDetector(
+                onTap: () async {
+                  final success = await provider.removeTransaction(transaction.id);
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Transaction deleted!"),
+                        backgroundColor: Color(0xFF10B981),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Failed to delete transaction!"),
+                        backgroundColor: Color(0xFFEF4444),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Color(0xFF6B7280),
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
